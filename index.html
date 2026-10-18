@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#120b06" />
+<title>Cozy Coffee</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#120b06; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
+    user-select:none; -webkit-user-select:none; touch-action:none; -webkit-touch-callout:none;
+  }
+  #c { display:block; width:100%; height:100%; }
+
+  #ui {
+    position:fixed; inset:0; pointer-events:none;
+    display:flex; flex-direction:column; justify-content:space-between;
+    padding: calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 26px);
+  }
+  #ui::after{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background: radial-gradient(ellipse at 50% 48%, rgba(0,0,0,0) 44%, rgba(0,0,0,0.60) 100%);
+  }
+
+  #top { display:flex; justify-content:space-between; align-items:flex-start; position:relative; z-index:2; }
+  .pillRow { display:flex; gap:8px; }
+
+  .pill {
+    display:flex; align-items:center; gap:7px;
+    background: rgba(30,18,10,0.6);
+    border: 1px solid rgba(255,190,120,0.22);
+    border-radius: 999px;
+    padding: 9px 16px;
+    color: #ffd9a8;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: .4px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.45);
+  }
+  .pill svg { width:19px; height:19px; display:block; }
+
+  #shopBtn {
+    pointer-events:auto; cursor:pointer; font-family:inherit;
+    transition: transform .12s ease;
+  }
+  #shopBtn:active { transform: scale(0.94); }
+
+  #bottom { display:flex; flex-direction:column; align-items:center; gap:12px; position:relative; z-index:2; }
+
+  #hint {
+    font-size: 23px; font-weight: 800; letter-spacing: .3px;
+    color: #ffe6c4;
+    text-shadow: 0 3px 16px rgba(0,0,0,0.9), 0 0 34px rgba(255,150,60,0.35);
+    transition: color .16s ease, transform .16s ease;
+    text-align:center; padding: 0 12px; min-height: 32px;
+  }
+  #hint.hot {
+    color:#8dffb4; transform: scale(1.09);
+    text-shadow: 0 3px 16px rgba(0,0,0,0.9), 0 0 30px rgba(80,255,140,0.75);
+  }
+  #hint.spill {
+    color:#ff9b8a; transform: scale(1.09);
+    text-shadow: 0 3px 16px rgba(0,0,0,0.9), 0 0 30px rgba(255,90,70,0.7);
+  }
+  #hint.serve { color:#ffcf8f; animation: pulseServe 1s ease-in-out infinite; }
+  @keyframes pulseServe {
+    0%,100% { transform: scale(1);    text-shadow: 0 3px 16px rgba(0,0,0,0.9), 0 0 26px rgba(255,170,80,0.5); }
+    50%     { transform: scale(1.07); text-shadow: 0 3px 16px rgba(0,0,0,0.9), 0 0 44px rgba(255,190,100,0.95); }
+  }
+
+  #tapRing {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: 3px solid rgba(255,200,140,0.35);
+    display:flex; align-items:center; justify-content:center;
+    animation: breathe 1.9s ease-in-out infinite;
+    opacity: 0; transition: opacity .3s ease;
+  }
+  #tapRing svg { width:25px; height:25px; stroke:#ffd9a8; }
+  #tapRing.on { opacity: 1; }
+  @keyframes breathe {
+    0%,100% { transform: scale(1);    border-color: rgba(255,200,140,0.28); }
+    50%     { transform: scale(1.13); border-color: rgba(255,200,140,0.8); }
+  }
+
+  #toast {
+    position:absolute; left:50%; top:36%;
+    transform: translate(-50%,-50%);
+    display:flex; align-items:center; justify-content:center; gap:2px;
+    font-size: 13vmin; font-weight:800; line-height:1;
+    opacity:0; pointer-events:none;
+    filter: drop-shadow(0 8px 26px rgba(0,0,0,0.7));
+    white-space:nowrap; z-index:3;
+  }
+  #toast svg { vertical-align: middle; filter: drop-shadow(0 6px 18px rgba(255,170,60,0.55)); }
+  #toast.spill { color:#ff8b7a; text-shadow: 0 4px 22px rgba(255,70,50,0.5); }
+  #toast.show { animation: toastPop 1.4s cubic-bezier(.2,.9,.3,1) forwards; }
+  @keyframes toastPop {
+    0%   { opacity:0; transform: translate(-50%,-50%) scale(0.15) rotate(-14deg); }
+    20%  { opacity:1; transform: translate(-50%,-50%) scale(1.2) rotate(5deg); }
+    44%  { opacity:1; transform: translate(-50%,-50%) scale(1) rotate(0deg); }
+    76%  { opacity:1; transform: translate(-50%,-58%) scale(1); }
+    100% { opacity:0; transform: translate(-50%,-98%) scale(0.8); }
+  }
+
+  #loading {
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:#120b06; color:#ffd9a8; font-size:20px; font-weight:700; z-index:50;
+    transition: opacity .55s ease;
+  }
+  #loading.hide { opacity:0; pointer-events:none; }
+
+  /* ===================== SHOP ===================== */
+  #shop {
+    position:fixed; inset:0; z-index:20;
+    display:flex; align-items:flex-end; justify-content:center;
+    pointer-events:none; opacity:0;
+    transition: opacity .22s ease;
+  }
+  #shop.open { pointer-events:auto; opacity:1; }
+  #shopBackdrop {
+    position:absolute; inset:0;
+    background: rgba(8,4,2,0.62);
+    backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+  }
+  #shopPanel {
+    position:relative; width:100%; max-width:520px;
+    max-height: 80vh; display:flex; flex-direction:column;
+    background: linear-gradient(180deg, #261708 0%, #1a0f06 100%);
+    border: 1px solid rgba(255,190,120,0.20);
+    border-bottom: none;
+    border-radius: 26px 26px 0 0;
+    box-shadow: 0 -12px 50px rgba(0,0,0,0.65);
+    transform: translateY(102%);
+    transition: transform .32s cubic-bezier(.2,.9,.3,1);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  #shop.open #shopPanel { transform: translateY(0); }
+
+  #shopHead {
+    display:flex; align-items:center; gap:12px;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid rgba(255,190,120,0.10);
+  }
+  #shopTitle { font-size:22px; font-weight:800; color:#ffe6c4; letter-spacing:.5px; flex:1; }
+  #shopCoins {
+    display:flex; align-items:center; gap:6px;
+    background: rgba(255,200,120,0.10);
+    border: 1px solid rgba(255,200,120,0.22);
+    border-radius: 999px; padding: 6px 13px;
+    color:#ffcf5a; font-weight:800; font-size:16px;
+  }
+  #shopCoins svg { width:16px; height:16px; }
+  #shopClose {
+    pointer-events:auto; cursor:pointer;
+    width:38px; height:38px; border-radius:50%;
+    background: rgba(255,190,120,0.08);
+    border: 1px solid rgba(255,190,120,0.18);
+    display:flex; align-items:center; justify-content:center;
+    transition: transform .12s ease, background .15s;
+  }
+  #shopClose:active { transform: scale(0.9); background: rgba(255,190,120,0.18); }
+  #shopClose svg { width:17px; height:17px; stroke:#ffd9a8; }
+
+  #shopBody {
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+    touch-action: pan-y;
+    padding: 6px 16px 24px;
+  }
+  .shopSection {
+    font-size: 13px; font-weight:800; letter-spacing:1.6px;
+    text-transform: uppercase; color:#c99b6a;
+    padding: 18px 4px 10px;
+  }
+  .shopGrid {
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;
+  }
+  .shopItem {
+    pointer-events:auto; cursor:pointer; font-family:inherit;
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    background: rgba(255,220,170,0.055);
+    border: 1.5px solid rgba(255,190,120,0.14);
+    border-radius: 16px;
+    padding: 11px 5px 9px;
+    color:#ffdcb0; font-size:12.5px; font-weight:700;
+    transition: transform .12s ease, border-color .18s, background .18s, box-shadow .18s;
+  }
+  .shopItem:active { transform: scale(0.96); }
+  .shopItem svg { width:44px; height:44px; display:block; }
+  .shopItem .itemName { text-align:center; line-height:1.15; }
+  .shopItem .priceRow {
+    display:flex; align-items:center; gap:3px;
+    font-size:12px; color:#ffcf5a; font-weight:800;
+  }
+  .shopItem .priceRow svg { width:13px; height:13px; }
+  .shopItem .ownedTag { font-size:11px; color:#8dffb4; font-weight:800; letter-spacing:.5px; }
+  .shopItem.selected {
+    border-color:#7bffb0;
+    background: rgba(90,255,150,0.10);
+    box-shadow: 0 0 18px rgba(90,255,150,0.22);
+  }
+  .shopItem.selected .ownedTag { color:#b6ffd0; }
+  .shopItem.cant { opacity:0.42; }
+  @keyframes shakeX {
+    0%,100% { transform: translateX(0); }
+    25%     { transform: translateX(-5px); }
+    75%     { transform: translateX(5px); }
+  }
+  .shopItem.shake { animation: shakeX .35s ease; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="ui">
+  <div id="top">
+    <div class="pillRow">
+      <div class="pill" id="scorePill"></div>
+      <div class="pill" id="servedPill"></div>
+    </div>
+    <button class="pill" id="shopBtn" type="button"></button>
+  </div>
+  <div id="bottom">
+    <div id="tapRing"></div>
+    <div id="hint">Hold to pour</div>
+  </div>
+  <div id="toast"></div>
+</div>
+
+<div id="shop">
+  <div id="shopBackdrop"></div>
+  <div id="shopPanel">
+    <div id="shopHead">
+      <div id="shopTitle">Shop</div>
+      <div id="shopCoins"></div>
+      <button id="shopClose" type="button" aria-label="Close"></button>
+    </div>
+    <div id="shopBody">
+      <div class="shopSection">Mugs</div>
+      <div class="shopGrid" id="mugGrid"></div>
+      <div class="shopSection">Pitchers</div>
+      <div class="shopGrid" id="pitcherGrid"></div>
+    </div>
+  </div>
+</div>
+
+<div id="loading">Warming up the kettle…</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* =========================================================
+   SVG ICON HELPERS  (no emojis anywhere)
+========================================================= */
+const starSVG = (size = 20, color = '#ffcf5a') =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" aria-hidden="true">
+     <path d="M12 2.3l2.95 6.05 6.65.62-5.02 4.45 1.5 6.5L12 16.6l-6.08 3.32 1.5-6.5L2.4 8.97l6.65-.62z"/>
+   </svg>`;
+
+const cupSVG = (size = 20, color = '#ffd9a8') =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+     <path d="M4 8h12v8.5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z"/>
+     <path d="M16 9.5h1.6a2.6 2.6 0 0 1 0 5.2H16"/>
+   </svg>`;
+
+const bagSVG = (size = 19, color = '#ffd9a8') =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+     <path d="M5.2 8h13.6l-1.2 11.1a2 2 0 0 1-2 1.8H8.4a2 2 0 0 1-2-1.8L5.2 8z"/>
+     <path d="M9 8V6.2a3 3 0 0 1 6 0V8"/>
+   </svg>`;
+
+const xSVG = (size = 17, color = '#ffd9a8') =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}"
+        stroke-width="2.6" stroke-linecap="round" aria-hidden="true">
+     <path d="M6 6l12 12M18 6L6 18"/>
+   </svg>`;
+
+const tapSVG = (size = 25) =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+     <circle cx="12" cy="12" r="3.6"/>
+     <path d="M12 2.4v3.4M12 18.2v3.4M2.4 12h3.4M18.2 12h3.4M5.2 5.2l2.4 2.4M16.4 16.4l2.4 2.4M18.8 5.2l-2.4 2.4M7.6 16.4l-2.4 2.4"/>
+   </svg>`;
+
+const mugIcon = (color) =>
+  `<svg viewBox="0 0 48 48" aria-hidden="true">
+     <path d="M9 13h22v19a8 8 0 0 1-8 8h-6a8 8 0 0 1-8-8V13z"
+           fill="${color}" stroke="rgba(255,225,180,0.55)" stroke-width="1.6" stroke-linejoin="round"/>
+     <path d="M31 17.5h3.2a5.2 5.2 0 0 1 0 10.4H31" fill="none"
+           stroke="rgba(255,225,180,0.65)" stroke-width="3.2" stroke-linecap="round"/>
+     <ellipse cx="20" cy="13" rx="11" ry="2.8" fill="rgba(0,0,0,0.20)"/>
+   </svg>`;
+
+const pitcherIcon = (color) =>
+  `<svg viewBox="0 0 48 48" aria-hidden="true">
+     <path d="M15 8h15l-2.2 8.4L32 23v13a5.5 5.5 0 0 1-5.5 5.5h-5A5.5 5.5 0 0 1 16 36V23l4.2-6.6L15 8z"
+           fill="${color}" stroke="rgba(255,225,180,0.55)" stroke-width="1.6" stroke-linejoin="round"/>
+     <path d="M32 20.5h2.4a4.6 4.6 0 0 1 0 9.2H32" fill="none"
+           stroke="rgba(255,225,180,0.65)" stroke-width="3" stroke-linecap="round"/>
+     <ellipse cx="22.5" cy="8" rx="7.5" ry="2.2" fill="rgba(0,0,0,0.20)"/>
+   </svg>`;
+
+/* =========================================================
+   HELPERS
+========================================================= */
+const rand  = (a,b) => a + Math.random()*(b-a);
+const pick  = a => a[(Math.random()*a.length)|0];
+const clamp = (v,a,b) => Math.min(b, Math.max(a,v));
+const lerp  = (a,b,t) => a + (b-a)*t;
+const easeOutCubic   = x => 1 - Math.pow(1-x,3);
+const easeOutBack    = x => 1 + 2.70158*Math.pow(x-1,3) + 1.70158*Math.pow(x-1,2);
+const easeInOutCubic = x => x<0.5 ? 4*x*x*x : 1 - Math.pow(-2*x+2,3)/2;
+
+function tex(canvas){
+  const t = new THREE.CanvasTexture(canvas);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function makeWoodTexture(){
+  const s = 512;
+  const c = document.createElement('canvas'); c.width = c.height = s;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0,0,0,s);
+  grad.addColorStop(0, '#9a663a');
+  grad.addColorStop(0.5,'#8a5a33');
+  grad.addColorStop(1, '#6f4526');
+  g.fillStyle = grad; g.fillRect(0,0,s,s);
+  for (let i=0;i<260;i++){
+    const y = Math.random()*s;
+    g.strokeStyle = `rgba(${52+Math.random()*46|0},${30+Math.random()*28|0},${12+Math.random()*18|0},${0.05+Math.random()*0.13})`;
+    g.lineWidth = 0.4 + Math.random()*2.8;
+    g.beginPath(); g.moveTo(-20, y);
+    for (let x=0;x<=s+20;x+=24){
+      g.lineTo(x, y + Math.sin(x*0.014 + i*1.7)*5 + (Math.random()-0.5)*2.4);
+    }
+    g.stroke();
+  }
+  for (let k=0;k<5;k++){
+    const cx = Math.random()*s, cy = Math.random()*s;
+    for (let r=2;r<26;r+=2.5){
+      g.strokeStyle = `rgba(48,26,10,${0.10 - r*0.0026})`;
+      g.lineWidth = 1.6;
+      g.beginPath();
+      g.ellipse(cx, cy, r*1.9, r*0.85, Math.random()*0.4, 0, Math.PI*2);
+      g.stroke();
+    }
+  }
+  const t = tex(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(2.6, 1.2);
+  return t;
+}
+
+function makeSoftDot(){
+  const s = 128;
+  const c = document.createElement('canvas'); c.width = c.height = s;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  gr.addColorStop(0,   'rgba(255,255,255,0.95)');
+  gr.addColorStop(0.35,'rgba(255,255,255,0.42)');
+  gr.addColorStop(1,   'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0,0,s,s);
+  return tex(c);
+}
+
+function makeHeartTexture(){
+  const s = 128;
+  const c = document.createElement('canvas'); c.width = c.height = s;
+  const g = c.getContext('2d');
+  g.fillStyle = '#ff6f8f';
+  g.shadowColor = 'rgba(255,60,110,0.9)';
+  g.shadowBlur = 14;
+  const cx = s/2, cy = s*0.40, r = s*0.29;
+  g.beginPath();
+  g.moveTo(cx, cy + r*1.55);
+  g.bezierCurveTo(cx - r*2.1, cy + r*0.15, cx - r*0.95, cy - r*1.35, cx, cy - r*0.35);
+  g.bezierCurveTo(cx + r*0.95, cy - r*1.35, cx + r*2.1, cy + r*0.15, cx, cy + r*1.55);
+  g.fill();
+  return tex(c);
+}
+
+function makeShadowTexture(){
+  const s = 128;
+  const c = document.createElement('canvas'); c.width = c.height = s;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  gr.addColorStop(0,   'rgba(0,0,0,0.72)');
+  gr.addColorStop(0.42,'rgba(0,0,0,0.30)');
+  gr.addColorStop(1,   'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0,0,s,s);
+  return tex(c);
+}
+
+function makeCremaTexture(){
+  const s = 256;
+  const c = document.createElement('canvas'); c.width = c.height = s;
+  const g = c.getContext('2d');
+  g.fillStyle = '#8f5a2c'; g.fillRect(0,0,s,s);
+  for (let i=0;i<70;i++){
+    const x = Math.random()*s, y = Math.random()*s, r = 6 + Math.random()*30;
+    g.beginPath(); g.arc(x,y,r,0,Math.PI*2);
+    g.fillStyle = `rgba(${150+Math.random()*60|0},${100+Math.random()*45|0},${55+Math.random()*35|0},${0.06+Math.random()*0.16})`;
+    g.fill();
+  }
+  for (let i=0;i<50;i++){
+    const x = Math.random()*s, y = Math.random()*s, r = 2 + Math.random()*9;
+    g.beginPath(); g.arc(x,y,r,0,Math.PI*2);
+    g.fillStyle = `rgba(${90+Math.random()*40|0},${52+Math.random()*30|0},${24+Math.random()*18|0},${0.10+Math.random()*0.22})`;
+    g.fill();
+  }
+  const gr = g.createRadialGradient(s/2,s/2,s*0.18,s/2,s/2,s*0.5);
+  gr.addColorStop(0,'rgba(0,0,0,0)');
+  gr.addColorStop(1,'rgba(140,88,44,1)');
+  g.fillStyle = gr; g.fillRect(0,0,s,s);
+  return tex(c);
+}
+
+function makeEnvTexture(){
+  const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+  const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0,0,0,128);
+  gr.addColorStop(0,   '#fff3e0');
+  gr.addColorStop(0.42,'#c08a52');
+  gr.addColorStop(0.55,'#6a4322');
+  gr.addColorStop(1,   '#140d06');
+  g.fillStyle = gr; g.fillRect(0,0,256,128);
+  const rg = g.createRadialGradient(58,44,4,58,44,74);
+  rg.addColorStop(0,'#fff6e2');
+  rg.addColorStop(1,'rgba(255,220,160,0)');
+  g.fillStyle = rg; g.fillRect(0,0,256,128);
+  const rg2 = g.createRadialGradient(206,52,4,206,52,60);
+  rg2.addColorStop(0,'#ffb870');
+  rg2.addColorStop(1,'rgba(255,150,60,0)');
+  g.fillStyle = rg2; g.fillRect(0,0,256,128);
+  const t = tex(c);
+  t.mapping = THREE.EquirectangularReflectionMapping;
+  return t;
+}
+
+/* =========================================================
+   RENDERER / SCENE / CAMERA
+========================================================= */
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.18;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d0804);
+scene.fog = new THREE.FogExp2(0x140c06, 0.05);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromEquirectangular(makeEnvTexture()).texture;
+
+const CAM_TARGET = new THREE.Vector3(0.14, 0.30, 0.02);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 60);
+camera.position.set(0.14, 1.72, 2.52);
+camera.lookAt(CAM_TARGET);
+
+/* =========================================================
+   LIGHTS
+========================================================= */
+scene.add(new THREE.HemisphereLight(0xffd7a8, 0x1e1208, 0.80));
+
+const keyLight = new THREE.DirectionalLight(0xffe8c8, 2.7);
+keyLight.position.set(-2.4, 4.4, 2.8);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1024, 1024);
+keyLight.shadow.camera.near = 0.5;
+keyLight.shadow.camera.far = 14;
+keyLight.shadow.camera.left = -2.6;
+keyLight.shadow.camera.right = 2.6;
+keyLight.shadow.camera.top = 2.6;
+keyLight.shadow.camera.bottom = -2.6;
+keyLight.shadow.bias = -0.0011;
+keyLight.shadow.normalBias = 0.02;
+keyLight.shadow.radius = 2.5;
+scene.add(keyLight);
+keyLight.target.position.set(0.1, 0.2, 0);
+scene.add(keyLight.target);
+
+const rimLight = new THREE.DirectionalLight(0xff9a4a, 2.3);
+rimLight.position.set(2.8, 1.6, -3.2);
+scene.add(rimLight);
+
+const warmFill = new THREE.PointLight(0xffb066, 2.8, 9, 2);
+warmFill.position.set(1.1, 1.25, 2.0);
+scene.add(warmFill);
+
+const coolFill = new THREE.PointLight(0x9ec4ff, 1.0, 8, 2);
+coolFill.position.set(-2.0, 1.0, 1.4);
+scene.add(coolFill);
+
+/* =========================================================
+   BOKEH
+========================================================= */
+const dotTex = makeSoftDot();
+const bokeh = [];
+for (let i = 0; i < 22; i++){
+  const mat = new THREE.SpriteMaterial({
+    map: dotTex,
+    color: i % 4 === 0 ? 0xffd9a0 : (i % 4 === 1 ? 0xffa14f : 0xffb673),
+    transparent: true,
+    opacity: rand(0.06, 0.20),
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    fog: false
+  });
+  const sp = new THREE.Sprite(mat);
+  sp.position.set(rand(-3.4, 3.4), rand(0.2, 3.0), rand(-5.6, -2.6));
+  sp.scale.setScalar(rand(0.30, 1.05));
+  sp.userData = { baseY: sp.position.y, spd: rand(0.14, 0.42), ph: rand(0, 6.28) };
+  scene.add(sp);
+  bokeh.push(sp);
+}
+
+/* =========================================================
+   COUNTER
+========================================================= */
+const woodTex = makeWoodTexture();
+
+const counter = new THREE.Mesh(
+  new THREE.BoxGeometry(16, 1.3, 2.6),
+  new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.84, metalness: 0.03 })
+);
+counter.position.set(0.14, -0.66, 0.55);
+counter.receiveShadow = true;
+scene.add(counter);
+
+const counterTop = new THREE.Mesh(
+  new THREE.BoxGeometry(16, 0.045, 2.6),
+  new THREE.MeshStandardMaterial({ map: woodTex, color: 0xb58858, roughness: 0.55, metalness: 0.06 })
+);
+counterTop.position.set(0.14, -0.022, 0.55);
+counterTop.receiveShadow = true;
+scene.add(counterTop);
+
+const lip = new THREE.Mesh(
+  new THREE.BoxGeometry(16, 0.03, 0.05),
+  new THREE.MeshStandardMaterial({ color: 0xd0a068, roughness: 0.38, metalness: 0.2 })
+);
+lip.position.set(0.14, -0.012, -0.735);
+scene.add(lip);
+
+/* =========================================================
+   MUG
+========================================================= */
+const MUG_RIM_R = 0.216;
+const LIQ_BASE_Y = 0.078;
+const FILL_MAX_H = 0.235;
+const COFFEE_R   = 0.1895;
+const ZONE_MIN = 0.58;
+const ZONE_MAX = 0.88;
+
+const mugGroup = new THREE.Group();
+mugGroup.position.set(0, 0, 0.06);
+scene.add(mugGroup);
+
+const ceramicMat = new THREE.MeshStandardMaterial({
+  color: 0xfbf8f3,
+  roughness: 0.22,
+  metalness: 0.02,
+  side: THREE.DoubleSide,
+  envMapIntensity: 0.95
+});
+
+const cupProfile = [
+  [0.000, 0.006],
+  [0.105, 0.000],
+  [0.155, 0.004],
+  [0.180, 0.014],
+  [0.196, 0.040],
+  [0.206, 0.120],
+  [0.212, 0.240],
+  [0.216, 0.316],
+  [0.214, 0.322],
+  [0.196, 0.322],
+  [0.194, 0.310],
+  [0.190, 0.150],
+  [0.186, 0.098],
+  [0.150, 0.082],
+  [0.000, 0.078]
+].map(p => new THREE.Vector2(p[0], p[1]));
+
+const cupMesh = new THREE.Mesh(new THREE.LatheGeometry(cupProfile, 64), ceramicMat);
+cupMesh.castShadow = true;
+cupMesh.receiveShadow = true;
+mugGroup.add(cupMesh);
+
+const handleMat = new THREE.MeshStandardMaterial({
+  color: 0xfbf8f3, roughness: 0.22, metalness: 0.02, envMapIntensity: 0.95
+});
+const handle = new THREE.Mesh(new THREE.TorusGeometry(0.080, 0.023, 14, 30), handleMat);
+handle.position.set(-0.266, 0.170, 0);
+handle.castShadow = true;
+mugGroup.add(handle);
+
+const shadowTex = makeShadowTexture();
+const mugShadow = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.15, 1.15),
+  new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.85 })
+);
+mugShadow.rotation.x = -Math.PI/2;
+mugShadow.position.set(0, 0.0035, 0.06);
+scene.add(mugShadow);
+
+/* ---- coffee liquid ---- */
+const coffeeMat = new THREE.MeshStandardMaterial({
+  color: 0x3d1f0d,
+  roughness: 0.20,
+  metalness: 0.14,
+  emissive: 0x1a0a04,
+  emissiveIntensity: 0.6
+});
+const coffee = new THREE.Mesh(
+  new THREE.CylinderGeometry(COFFEE_R, COFFEE_R*0.96, 1, 44, 1, false),
+  coffeeMat
+);
+mugGroup.add(coffee);
+
+const cremaMat = new THREE.MeshStandardMaterial({
+  map: makeCremaTexture(),
+  roughness: 0.55,
+  metalness: 0.02,
+  transparent: true,
+  opacity: 0.97
+});
+const crema = new THREE.Mesh(new THREE.CircleGeometry(COFFEE_R*0.985, 44), cremaMat);
+crema.rotation.x = -Math.PI/2;
+mugGroup.add(crema);
+
+/* ---- spill puddle on the counter ---- */
+const puddleMat = new THREE.MeshStandardMaterial({
+  color: 0x3a1d0c, roughness: 0.10, metalness: 0.45,
+  transparent: true, opacity: 0, depthWrite: false
+});
+const puddle = new THREE.Mesh(new THREE.CircleGeometry(0.30, 40), puddleMat);
+puddle.rotation.x = -Math.PI/2;
+puddle.position.set(0, 0.0042, 0.06);
+puddle.visible = false;
+scene.add(puddle);
+
+/* ---- green target zone (inner wall, slightly conical to match mug) ---- */
+const zoneMinY = LIQ_BASE_Y + ZONE_MIN * FILL_MAX_H;
+const zoneMaxY = LIQ_BASE_Y + ZONE_MAX * FILL_MAX_H;
+
+const zoneRBot = 0.1918;
+const zoneRTop = 0.1940;
+
+const zoneMat = new THREE.MeshStandardMaterial({
+  color: 0x5dffa0,
+  emissive: 0x2fe070,
+  emissiveIntensity: 1.1,
+  transparent: true,
+  opacity: 0.55,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+  roughness: 0.4
+});
+const zoneBand = new THREE.Mesh(
+  new THREE.CylinderGeometry(zoneRTop, zoneRBot, zoneMaxY - zoneMinY, 48, 1, true),
+  zoneMat
+);
+zoneBand.position.y = (zoneMinY + zoneMaxY) / 2;
+mugGroup.add(zoneBand);
+
+const ringMat = new THREE.MeshStandardMaterial({
+  color: 0xb6ffd0,
+  emissive: 0x7bffb0,
+  emissiveIntensity: 2.0,
+  transparent: true,
+  opacity: 0.95,
+  depthWrite: false
+});
+[[zoneMinY, zoneRBot], [zoneMaxY, zoneRTop]].forEach(([y, r]) => {
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(r + 0.0006, 0.0038, 8, 48), ringMat);
+  ring.rotation.x = Math.PI/2;
+  ring.position.y = y;
+  mugGroup.add(ring);
+});
+
+/* =========================================================
+   PITCHER
+========================================================= */
+const pitcher = new THREE.Group();
+pitcher.position.set(0.52, 0.09, 0.02);
+scene.add(pitcher);
+
+const pitcherMat = new THREE.MeshStandardMaterial({
+  color: 0x1a1b20, roughness: 0.42, metalness: 0.35, envMapIntensity: 1.3, side: THREE.DoubleSide
+});
+const pitcherMatte = new THREE.MeshStandardMaterial({
+  color: 0x0e0f12, roughness: 0.62, metalness: 0.28
+});
+const brassMat = new THREE.MeshStandardMaterial({
+  color: 0xd9a55c, roughness: 0.24, metalness: 0.96, envMapIntensity: 1.5
+});
+const steelMat = new THREE.MeshStandardMaterial({
+  color: 0x9aa0a8, roughness: 0.20, metalness: 0.97, envMapIntensity: 1.4
+});
+
+const pitcherProfile = [
+  [0.000, 0.035],
+  [0.075, 0.033],
+  [0.105, 0.045],
+  [0.115, 0.090],
+  [0.120, 0.160],
+  [0.122, 0.240],
+  [0.125, 0.290],
+  [0.132, 0.315],
+  [0.142, 0.322],
+  [0.145, 0.308],
+  [0.150, 0.250],
+  [0.155, 0.170],
+  [0.148, 0.100],
+  [0.128, 0.045],
+  [0.085, 0.008],
+  [0.000, 0.000]
+].map(p => new THREE.Vector2(p[0], p[1]));
+
+const pitcherBody = new THREE.Mesh(new THREE.LatheGeometry(pitcherProfile, 64), pitcherMat);
+pitcherBody.castShadow = true;
+pitcherBody.receiveShadow = true;
+pitcher.add(pitcherBody);
+
+const innerCoffee = new THREE.Mesh(
+  new THREE.CircleGeometry(0.112, 40),
+  new THREE.MeshStandardMaterial({ color: 0x2a1508, roughness: 0.28, metalness: 0.15 })
+);
+innerCoffee.rotation.x = -Math.PI/2;
+innerCoffee.position.y = 0.14;
+pitcher.add(innerCoffee);
+
+const rimRing = new THREE.Mesh(new THREE.TorusGeometry(0.1365, 0.0055, 8, 64), brassMat);
+rimRing.rotation.x = Math.PI/2;
+rimRing.position.y = 0.318;
+pitcher.add(rimRing);
+
+const handleCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0.120, 0.265, 0),
+  new THREE.Vector3(0.220, 0.235, 0),
+  new THREE.Vector3(0.255, 0.170, 0),
+  new THREE.Vector3(0.225, 0.105, 0),
+  new THREE.Vector3(0.115, 0.085, 0)
+]);
+const pitcherHandle = new THREE.Mesh(
+  new THREE.TubeGeometry(handleCurve, 28, 0.021, 12, false),
+  pitcherMatte
+);
+pitcherHandle.castShadow = true;
+pitcher.add(pitcherHandle);
+
+const spoutCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(-0.090, 0.155, 0),
+  new THREE.Vector3(-0.145, 0.172, 0),
+  new THREE.Vector3(-0.200, 0.185, 0),
+  new THREE.Vector3(-0.250, 0.180, 0),
+  new THREE.Vector3(-0.290, 0.168, 0)
+]);
+const pitcherSpout = new THREE.Mesh(
+  new THREE.TubeGeometry(spoutCurve, 24, 0.029, 14, false),
+  pitcherMat
+);
+pitcherSpout.castShadow = true;
+pitcher.add(pitcherSpout);
+
+const spoutTipRing = new THREE.Mesh(new THREE.TorusGeometry(0.028, 0.0055, 8, 22), steelMat);
+spoutTipRing.position.copy(spoutCurve.getPoint(1));
+spoutTipRing.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), spoutCurve.getTangent(1));
+pitcher.add(spoutTipRing);
+
+const spoutAnchor = new THREE.Object3D();
+spoutAnchor.position.copy(spoutCurve.getPoint(1));
+pitcher.add(spoutAnchor);
+
+const pitcherBand = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.1540, 0.1540, 0.012, 64, 1, true),
+  brassMat
+);
+pitcherBand.position.y = 0.105;
+pitcher.add(pitcherBand);
+
+const potShadow = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.9, 0.9),
+  new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.6 })
+);
+potShadow.rotation.x = -Math.PI/2;
+potShadow.position.set(0.52, 0.0035, 0.02);
+scene.add(potShadow);
+
+/* =========================================================
+   COFFEE STREAM (curved tube rebuilt each frame)
+========================================================= */
+const streamMat = new THREE.MeshStandardMaterial({
+  color: 0x4a2410,
+  roughness: 0.12,
+  metalness: 0.42,
+  emissive: 0x22100a,
+  emissiveIntensity: 0.9
+});
+const stream = new THREE.Mesh(new THREE.BufferGeometry(), streamMat);
+stream.visible = false;
+scene.add(stream);
+
+let streamGeo = null;
+const _mid = new THREE.Vector3();
+
+function updateStream(start, end){
+  if (streamGeo) streamGeo.dispose();
+  _mid.lerpVectors(start, end, 0.42);
+  _mid.x -= 0.008;
+  _mid.y += 0.012;
+  const curve = new THREE.QuadraticBezierCurve3(start, _mid, end);
+  streamGeo = new THREE.TubeGeometry(curve, 20, 0.0115, 8, false);
+  stream.geometry = streamGeo;
+  stream.visible = true;
+}
+
+/* =========================================================
+   RIPPLES
+========================================================= */
+const ripples = [];
+for (let i = 0; i < 7; i++){
+  const r = new THREE.Mesh(
+    new THREE.RingGeometry(0.9, 1.0, 30),
+    new THREE.MeshBasicMaterial({ color: 0xd9a870, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide })
+  );
+  r.rotation.x = -Math.PI/2;
+  r.visible = false;
+  r.userData = { life: 0, dur: 0.85, active: false };
+  mugGroup.add(r);
+  ripples.push(r);
+}
+let rippleTimer = 0;
+let spillTimer = 0;
+
+function emitRipple(y){
+  for (const r of ripples){
+    if (!r.userData.active){
+      r.userData.active = true;
+      r.userData.life = 0;
+      r.visible = true;
+      r.position.set(rand(-0.028,0.028), y + 0.0022, rand(-0.028,0.028));
+      r.scale.setScalar(0.012);
+      break;
+    }
+  }
+}
+
+function updateRipples(dt){
+  for (const r of ripples){
+    if (!r.userData.active) continue;
+    r.userData.life += dt;
+    const t = r.userData.life / r.userData.dur;
+    if (t >= 1){ r.userData.active = false; r.visible = false; continue; }
+    r.scale.setScalar(0.012 + t * 0.070);
+    r.material.opacity = 0.55 * (1 - t);
+  }
+}
+
+/* =========================================================
+   CUSTOMERS
+========================================================= */
+const SKIN  = [0xf6d0ab, 0xe6b183, 0xcb8f61, 0x9c6440, 0xfae3ca, 0x7d4d31];
+const CLOTH = [0xd9534f, 0x5fa8d3, 0x6cb35f, 0xe8a44e, 0x9b6fc4, 0x3d6f92, 0xdd7a9c, 0x4fae8e, 0xc96a4a, 0x6f8fd6];
+
+let customer = null;
+
+function disposeGroup(g){
+  g.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material){
+      if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
+      else o.material.dispose();
+    }
+  });
+  if (g.parent) g.parent.remove(g);
+}
+
+function makeCustomer(){
+  const g = new THREE.Group();
+  g.position.set(0, 0, -1.42);
+
+  const skinMat  = new THREE.MeshStandardMaterial({ color: pick(SKIN),  roughness: 0.85, envMapIntensity: 0.6 });
+  const clothMat = new THREE.MeshStandardMaterial({ color: pick(CLOTH), roughness: 0.92, envMapIntensity: 0.5 });
+  const darkMat  = new THREE.MeshStandardMaterial({ color: 0x1a1210, roughness: 0.35 });
+
+  const BODY_H = 0.50;
+  const BODY_R = 0.20;
+
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(BODY_R, BODY_R*0.94, BODY_H, 32), clothMat);
+  body.position.y = BODY_H / 2;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  g.add(body);
+
+  const shoulder = new THREE.Mesh(new THREE.SphereGeometry(BODY_R, 32, 16, 0, Math.PI*2, 0, Math.PI*0.5), clothMat);
+  shoulder.position.y = BODY_H;
+  shoulder.scale.y = 0.42;
+  g.add(shoulder);
+
+  const HEAD_Y = BODY_H + 0.155;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.21, 32, 24), skinMat);
+  head.position.y = HEAD_Y;
+  head.castShadow = true;
+  g.add(head);
+
+  const eyeGeo = new THREE.SphereGeometry(0.028, 14, 12);
+  [-0.075, 0.075].forEach(x => {
+    const e = new THREE.Mesh(eyeGeo, darkMat);
+    e.position.set(x, HEAD_Y + 0.035, 0.185);
+    g.add(e);
+  });
+
+  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.0118, 10, 22, Math.PI), darkMat);
+  mouth.position.set(0, HEAD_Y - 0.055, 0.193);
+  mouth.rotation.z = Math.PI;
+  mouth.rotation.x = -0.18;
+  g.add(mouth);
+  g.userData.mouth = mouth;
+
+  g.userData.spawnT = 0;
+  g.scale.setScalar(0.001);
+  return g;
+}
+
+function spawnCustomer(){
+  if (customer) disposeGroup(customer);
+  customer = makeCustomer();
+  scene.add(customer);
+}
+
+/* =========================================================
+   PARTICLES
+========================================================= */
+const heartTex = makeHeartTexture();
+const particles = [];
+
+function spawnParticle(o){
+  const m = new THREE.SpriteMaterial({
+    map: o.map,
+    transparent: true,
+    depthWrite: false,
+    color: o.color !== undefined ? o.color : 0xffffff,
+    blending: o.additive ? THREE.AdditiveBlending : THREE.NormalBlending
+  });
+  const s = new THREE.Sprite(m);
+  s.position.copy(o.pos);
+  s.scale.setScalar(0.001);
+  s.userData = {
+    life: 0, dur: o.dur,
+    vel: o.vel.clone(),
+    size: o.size,
+    spin: rand(-2.5, 2.5),
+    grav: o.grav || 0,
+    isHeart: o.map === heartTex
+  };
+  scene.add(s);
+  particles.push(s);
+}
+
+function spawnHearts(pos, n = 8){
+  for (let i = 0; i < n; i++){
+    spawnParticle({
+      map: heartTex,
+      pos: new THREE.Vector3(pos.x + rand(-0.4,0.4), pos.y + rand(-0.12,0.28), pos.z + rand(-0.15,0.18)),
+      vel: new THREE.Vector3(rand(-0.28,0.28), rand(0.55,1.05), rand(-0.12,0.12)),
+      size: rand(0.13, 0.26),
+      dur: rand(1.2, 1.8),
+      color: Math.random() < 0.3 ? 0xffc9d8 : 0xffffff
+    });
+  }
+}
+
+function spawnSparkle(pos, color){
+  spawnParticle({
+    map: dotTex,
+    pos: pos.clone(),
+    vel: new THREE.Vector3(rand(-0.55,0.55), rand(0.3,1.0), rand(-0.35,0.35)),
+    size: rand(0.09, 0.22),
+    dur: rand(0.5, 0.95),
+    color: color || 0xffd08a,
+    additive: true
+  });
+}
+
+function spawnSplash(pos){
+  for (let i = 0; i < 2; i++){
+    spawnParticle({
+      map: dotTex,
+      pos: pos.clone(),
+      vel: new THREE.Vector3(rand(-0.24,0.24), rand(0.22,0.52), rand(-0.24,0.24)),
+      size: rand(0.024, 0.050),
+      dur: rand(0.30, 0.55),
+      color: 0xb07a45,
+      grav: -2.4
+    });
+  }
+}
+
+function spawnSpillDrip(){
+  const ang = rand(0, Math.PI*2);
+  const r = MUG_RIM_R + 0.006;
+  spawnParticle({
+    map: dotTex,
+    pos: new THREE.Vector3(Math.cos(ang)*r, 0.322, Math.sin(ang)*r + 0.06),
+    vel: new THREE.Vector3(Math.cos(ang)*0.10, rand(-0.02, 0.06), Math.sin(ang)*0.10),
+    size: rand(0.020, 0.042),
+    dur: rand(0.45, 0.85),
+    color: 0x6b3a1b,
+    grav: -2.0
+  });
+}
+
+function spawnSteam(pos){
+  spawnParticle({
+    map: dotTex,
+    pos: pos.clone().add(new THREE.Vector3(rand(-0.05,0.05), 0.02, rand(-0.05,0.05))),
+    vel: new THREE.Vector3(rand(-0.045,0.045), rand(0.20,0.36), rand(-0.045,0.045)),
+    size: rand(0.09, 0.17),
+    dur: rand(1.3, 2.1),
+    color: 0xfff2e0
+  });
+}
+
+function updateParticles(dt){
+  for (let i = particles.length - 1; i >= 0; i--){
+    const p = particles[i];
+    const u = p.userData;
+    u.life += dt;
+    const t = u.life / u.dur;
+    if (t >= 1){
+      scene.remove(p);
+      p.material.dispose();
+      particles.splice(i, 1);
+      continue;
+    }
+    p.position.addScaledVector(u.vel, dt);
+    u.vel.y += u.grav * dt;
+    u.vel.multiplyScalar(1 - 1.3 * dt);
+
+    let sc;
+    if (u.isHeart){
+      sc = u.size * (t < 0.26 ? easeOutBack(t / 0.26) : 1);
+    } else {
+      sc = u.size * Math.sin(Math.PI * Math.min(1, t * 1.05)) * 0.85 + u.size * 0.15;
+    }
+    p.scale.setScalar(Math.max(0.001, sc));
+
+    let op = 1;
+    if (t > 0.60) op = 1 - (t - 0.60) / 0.40;
+    p.material.opacity = Math.max(0, op);
+    p.material.rotation += u.spin * dt;
+  }
+}
+
+/* =========================================================
+   SHOP DATA
+========================================================= */
+const mugStyles = [
+  { name:'Classic White', color:'#fbf8f3', price:0 },
+  { name:'Blush Pink',    color:'#f0c2bd', price:10 },
+  { name:'Sage Green',    color:'#b7cbb0', price:10 },
+  { name:'Sky Blue',      color:'#a6c8de', price:18 },
+  { name:'Midnight',      color:'#343a45', price:30 },
+  { name:'Terracotta',    color:'#c9714d', price:40 }
+];
+
+const pitcherStyles = [
+  { name:'Matte Black',  color:'#1a1b20', metalness:0.35, roughness:0.42, price:0 },
+  { name:'Cream Enamel', color:'#e6dcc6', metalness:0.05, roughness:0.52, price:15 },
+  { name:'Copper',       color:'#b87333', metalness:0.95, roughness:0.26, price:30 },
+  { name:'Deep Forest',  color:'#2d4a3e', metalness:0.30, roughness:0.45, price:45 },
+  { name:'Rose Gold',    color:'#d9a29b', metalness:0.90, roughness:0.30, price:60 }
+];
+
+let ownedMugs = new Set([0]);
+let ownedPitchers = new Set([0]);
+let selectedMug = 0;
+let selectedPitcher = 0;
+
+function applyMugStyle(i){
+  const s = mugStyles[i];
+  ceramicMat.color.set(s.color);
+  handleMat.color.set(s.color);
+}
+
+function applyPitcherStyle(i){
+  const s = pitcherStyles[i];
+  pitcherMat.color.set(s.color);
+  pitcherMat.metalness = s.metalness;
+  pitcherMat.roughness = s.roughness;
+  const dark = new THREE.Color(s.color).multiplyScalar(0.35);
+  pitcherMatte.color.copy(dark);
+}
+
+/* =========================================================
+   SAVE / LOAD
+========================================================= */
+const SAVE_KEY = 'cozyCoffee_v2';
+
+function saveGame(){
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      score: G.score,
+      served: G.served,
+      mugs: [...ownedMugs],
+      pitchers: [...ownedPitchers],
+      mug: selectedMug,
+      pitcher: selectedPitcher
+    }));
+  } catch(e){}
+}
+
+function loadGame(){
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    G.score  = Math.max(0, d.score | 0);
+    G.served = Math.max(0, d.served | 0);
+    ownedMugs = new Set(Array.isArray(d.mugs) ? d.mugs : [0]);
+    ownedMugs.add(0);
+    ownedPitchers = new Set(Array.isArray(d.pitchers) ? d.pitchers : [0]);
+    ownedPitchers.add(0);
+    selectedMug = ownedMugs.has(d.mug) ? d.mug : 0;
+    selectedPitcher = ownedPitchers.has(d.pitcher) ? d.pitcher : 0;
+  } catch(e){}
+}
+
+/* =========================================================
+   GAME STATE
+========================================================= */
+const POUR_RATE    = 0.40;
+const OVERFILL_CAP = 1.35;
+
+const G = {
+  phase: 'ready',
+  fill: 0,
+  time: 0,
+  score: 0,
+  served: 0,
+  serveT: 0,
+  heartsDone: false,
+  resetDone: false,
+  mugPop: 1,
+  promptT: 0,
+  inZone: false,
+  over: false
+};
+
+let holding = false;
+let shopOpen = false;
+
+/* =========================================================
+   DOM
+========================================================= */
+const scorePill  = document.getElementById('scorePill');
+const servedPill = document.getElementById('servedPill');
+const shopBtn    = document.getElementById('shopBtn');
+const hintEl     = document.getElementById('hint');
+const tapRing    = document.getElementById('tapRing');
+const toastEl    = document.getElementById('toast');
+const loadingEl  = document.getElementById('loading');
+
+const shopEl     = document.getElementById('shop');
+const shopClose  = document.getElementById('shopClose');
+const shopCoins  = document.getElementById('shopCoins');
+const mugGrid    = document.getElementById('mugGrid');
+const pitcherGrid= document.getElementById('pitcherGrid');
+
+scorePill.innerHTML  = starSVG(19) + '<span id="scoreNum">0</span>';
+servedPill.innerHTML = cupSVG(19) + '<span id="servedNum">0</span>';
+shopBtn.innerHTML    = bagSVG(19) + '<span>Shop</span>';
+shopCoins.innerHTML  = starSVG(16) + '<span id="coinNum">0</span>';
+shopClose.innerHTML  = xSVG(17);
+tapRing.innerHTML    = tapSVG(25);
+
+const scoreNum  = document.getElementById('scoreNum');
+const servedNum = document.getElementById('servedNum');
+const coinNum   = document.getElementById('coinNum');
+
+let hintTxt = '', hintCls = null;
+function setHint(txt, cls){
+  if (txt === hintTxt && cls === hintCls) return;
+  hintTxt = txt; hintCls = cls;
+  hintEl.textContent = txt;
+  hintEl.className = cls || '';
+}
+
+function showToast(html, cls){
+  toastEl.innerHTML = html;
+  toastEl.className = '';
+  void toastEl.offsetWidth;
+  toastEl.className = 'show' + (cls ? ' ' + cls : '');
+}
+
+function updateHUD(){
+  scoreNum.textContent  = G.score;
+  servedNum.textContent = G.served;
+  if (coinNum) coinNum.textContent = G.score;
+}
+
+/* =========================================================
+   SHOP UI
+========================================================= */
+function makeShopCard(kind, idx){
+  const list = kind === 'mug' ? mugStyles : pitcherStyles;
+  const s = list[idx];
+  const owned = kind === 'mug' ? ownedMugs.has(idx) : ownedPitchers.has(idx);
+  const selected = kind === 'mug' ? selectedMug === idx : selectedPitcher === idx;
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'shopItem'
+    + (selected ? ' selected' : '')
+    + (!owned && G.score < s.price ? ' cant' : '');
+
+  const icon = kind === 'mug' ? mugIcon(s.color) : pitcherIcon(s.color);
+  btn.innerHTML = `
+    <div class="swatch">${icon}</div>
+    <div class="itemName">${s.name}</div>
+    ${owned
+      ? `<div class="ownedTag">${selected ? 'Selected' : 'Owned'}</div>`
+      : `<div class="priceRow">${starSVG(13)}<span>${s.price}</span></div>`}
+  `;
+
+  btn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    if (owned){
+      if (kind === 'mug'){ selectedMug = idx; applyMugStyle(idx); }
+      else { selectedPitcher = idx; applyPitcherStyle(idx); }
+      saveGame();
+      renderShop();
+    } else if (G.score >= s.price){
+      G.score -= s.price;
+      if (kind === 'mug'){ ownedMugs.add(idx); selectedMug = idx; applyMugStyle(idx); }
+      else { ownedPitchers.add(idx); selectedPitcher = idx; applyPitcherStyle(idx); }
+      updateHUD();
+      saveGame();
+      renderShop();
+    } else {
+      btn.classList.add('shake');
+      setTimeout(() => btn.classList.remove('shake'), 380);
+    }
+  });
+
+  return btn;
+}
+
+function renderShop(){
+  mugGrid.innerHTML = '';
+  mugStyles.forEach((_, i) => mugGrid.appendChild(makeShopCard('mug', i)));
+
+  pitcherGrid.innerHTML = '';
+  pitcherStyles.forEach((_, i) => pitcherGrid.appendChild(makeShopCard('pitcher', i)));
+
+  if (coinNum) coinNum.textContent = G.score;
+}
+
+function openShop(){
+  if (G.phase !== 'ready') {
+    shopBtn.classList.add('shake');
+    setTimeout(() => shopBtn.classList.remove('shake'), 380);
+    return;
+  }
+  shopOpen = true;
+  renderShop();
+  shopEl.classList.add('open');
+}
+
+function closeShop(){
+  shopOpen = false;
+  shopEl.classList.remove('open');
+}
+
+shopBtn.addEventListener('pointerdown', e => e.stopPropagation());
+shopBtn.addEventListener('click', e => { e.stopPropagation(); openShop(); });
+shopClose.addEventListener('pointerdown', e => e.stopPropagation());
+shopClose.addEventListener('click', e => { e.stopPropagation(); closeShop(); });
+document.getElementById('shopBackdrop').addEventListener('click', closeShop);
+
+/* =========================================================
+   INPUT
+========================================================= */
+function onDown(e){
+  if (shopOpen) return;
+  if (e && e.target && e.target.closest && e.target.closest('#shopBtn, #shop')) return;
+  if (G.phase !== 'ready') return;
+
+  holding = true;
+  G.phase = 'pouring';
+  G.fill = 0;
+  G.over = false;
+  tapRing.classList.remove('on');
+  puddle.visible = false;
+  puddleMat.opacity = 0;
+
+  for (let i = 0; i < 3; i++){
+    spawnSparkle(new THREE.Vector3(rand(-0.3,0.3), rand(0.3,0.6), 0.1), 0xffc070);
+  }
+}
+
+function onUp(){
+  if (!holding) return;
+  holding = false;
+  if (G.phase === 'pouring') finishPour();
+}
+
+window.addEventListener('pointerdown', onDown, { passive: true });
+window.addEventListener('pointerup', onUp, { passive: true });
+window.addEventListener('pointercancel', onUp, { passive: true });
+window.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('gesturestart', e => e.preventDefault());
+
+/* =========================================================
+   POUR RESULT
+========================================================= */
+function finishPour(){
+  const f = G.fill;
+
+  let stars, html, cls;
+
+  if (f > 1.0){
+    stars = 0;
+    html = 'Spilled!';
+    cls = 'spill';
+  } else if (f >= ZONE_MIN && f <= ZONE_MAX){
+    stars = 3;
+    html = starSVG(62) + starSVG(62) + starSVG(62);
+    cls = '';
+  } else if (f >= ZONE_MIN - 0.15 && f <= ZONE_MAX + 0.10){
+    stars = 2;
+    html = starSVG(62) + starSVG(62);
+    cls = '';
+  } else {
+    stars = 1;
+    html = starSVG(62);
+    cls = '';
+  }
+
+  G.score += stars;
+  G.served += 1;
+  updateHUD();
+  saveGame();
+
+  G.phase = 'servePrompt';
+  G.promptT = 0;
+  G.serveT = 0;
+  G.heartsDone = false;
+  G.resetDone = false;
+
+  setTimeout(() => showToast(html, cls), 240);
+}
+
+/* =========================================================
+   UPDATE
+========================================================= */
+const POUR_X = 0.40, POUR_Y = 0.50, POUR_Z = 0.06, POUR_TILT = 0.92;
+const REST_X = 0.52, REST_Y = 0.09, REST_Z = 0.02, REST_TILT = 0.05;
+
+const _a = new THREE.Vector3();
+const _b = new THREE.Vector3();
+
+function update(dt){
+  G.time += dt;
+
+  /* ---------- pitcher pose ---------- */
+  const isPouring = (G.phase === 'pouring');
+  const tx = isPouring ? POUR_X : REST_X;
+  const ty = isPouring ? POUR_Y : REST_Y;
+  const tz = isPouring ? POUR_Z : REST_Z;
+  const tt = isPouring ? POUR_TILT : REST_TILT;
+
+  const spd = 1 - Math.exp(-dt * 7);
+  pitcher.position.x += (tx - pitcher.position.x) * spd;
+  pitcher.position.y += (ty - pitcher.position.y) * spd;
+  pitcher.position.z += (tz - pitcher.position.z) * spd;
+  pitcher.rotation.z += (tt - pitcher.rotation.z) * spd;
+
+  if (isPouring) pitcher.position.y += Math.sin(G.time * 7) * 0.003;
+
+  /* ---------- fill (can overflow!) ---------- */
+  if (G.phase === 'pouring' && pitcher.rotation.z > 0.58){
+    G.fill = Math.min(OVERFILL_CAP, G.fill + POUR_RATE * dt);
+  }
+
+  /* ---------- coffee body (visual caps at full) ---------- */
+  const visualFill = Math.min(1.0, G.fill);
+  const h = Math.max(0.0006, visualFill * FILL_MAX_H);
+  coffee.scale.y = h;
+  coffee.position.y = LIQ_BASE_Y + h / 2;
+  coffee.visible = G.fill > 0.006;
+
+  crema.visible = coffee.visible;
+  crema.position.y = LIQ_BASE_Y + h + 0.0016;
+  crema.rotation.z = Math.sin(G.time * 0.6) * 0.05;
+
+  const surfaceY = LIQ_BASE_Y + h;
+
+  /* ---------- overflow spill ---------- */
+  const overflow = Math.max(0, G.fill - 1.0);
+  G.over = overflow > 0.001;
+
+  if (G.over){
+    const o = clamp(overflow / 0.30, 0, 1);
+    puddle.visible = true;
+    puddleMat.opacity = 0.22 + o * 0.55;
+    puddle.scale.setScalar(0.55 + o * 0.55);
+
+    spillTimer -= dt;
+    if (spillTimer <= 0){
+      spillTimer = 0.055;
+      spawnSpillDrip();
+      spawnSpillDrip();
+    }
+  } else if (puddle.visible){
+    puddleMat.opacity *= (1 - dt * 4);
+    if (puddleMat.opacity < 0.02){
+      puddleMat.opacity = 0;
+      puddle.visible = false;
+    }
+  }
+
+  /* ---------- zone glow ---------- */
+  G.inZone = (G.fill >= ZONE_MIN && G.fill <= ZONE_MAX) && G.phase === 'pouring';
+  const pulse = 0.5 + 0.5 * Math.sin(G.time * 5.5);
+  const tOp = G.inZone ? 0.72 + 0.22 * pulse : (G.phase === 'pouring' ? 0.55 : 0.42);
+  zoneMat.opacity += (tOp - zoneMat.opacity) * Math.min(1, dt * 12);
+  zoneMat.emissiveIntensity = G.inZone ? 2.1 + pulse * 1.6 : 1.0;
+  ringMat.emissiveIntensity = G.inZone ? 3.0 + pulse * 2.0 : 1.3;
+  coffeeMat.emissiveIntensity = G.inZone ? 1.2 + pulse * 0.55 : 0.6;
+
+  /* ---------- curved coffee stream ---------- */
+  const shouldPour = (G.phase === 'pouring') && pitcher.rotation.z > 0.58 && G.fill < 1.0;
+
+  if (shouldPour){
+    pitcher.updateMatrixWorld(true);
+    spoutAnchor.getWorldPosition(_a);
+
+    _b.set(0.0, surfaceY + 0.002, 0.06);
+    if (_b.y > _a.y - 0.03) _b.y = _a.y - 0.03;
+
+    updateStream(_a, _b);
+
+    rippleTimer -= dt;
+    if (rippleTimer <= 0){
+      rippleTimer = 0.075;
+      emitRipple(surfaceY);
+      spawnSplash(new THREE.Vector3(_b.x + rand(-0.02, 0.02), surfaceY + 0.006, _b.z + rand(-0.02, 0.02)));
+    }
+  } else {
+    stream.visible = false;
+  }
+
+  updateRipples(dt);
+
+  /* ---------- steam ---------- */
+  if (G.fill > 0.05 && Math.random() < dt * (shouldPour ? 16 : 8)){
+    const wp = new THREE.Vector3();
+    crema.getWorldPosition(wp);
+    wp.y += 0.025;
+    spawnSteam(wp);
+  }
+
+  /* ---------- mug pop ---------- */
+  if (G.mugPop < 1){
+    G.mugPop = Math.min(1, G.mugPop + dt / 0.32);
+    if (G.phase !== 'serving'){
+      mugGroup.scale.setScalar(Math.max(0.001, easeOutBack(G.mugPop)));
+    }
+  }
+
+  /* ---------- customer ---------- */
+  if (customer){
+    const u = customer.userData;
+    if (u.spawnT < 1){
+      u.spawnT = Math.min(1, u.spawnT + dt / 0.42);
+      customer.scale.setScalar(Math.max(0.001, easeOutBack(u.spawnT)));
+    }
+    if (G.phase !== 'serving'){
+      customer.position.y = Math.sin(G.time * 1.55) * 0.010;
+      customer.rotation.y = Math.sin(G.time * 0.62) * 0.055;
+      customer.rotation.z *= 0.9;
+      u.mouth.scale.set(1, 1, 1);
+    }
+  }
+
+  /* ---------- serve prompt ---------- */
+  if (G.phase === 'servePrompt'){
+    G.promptT += dt;
+    const gp = 0.5 + 0.5 * Math.sin(G.time * 6);
+    coffeeMat.emissiveIntensity = 1.3 + gp * 0.7;
+    if (G.promptT > 0.85){
+      G.phase = 'serving';
+      G.serveT = 0;
+    }
+  }
+
+  /* ---------- serving animation ---------- */
+  if (G.phase === 'serving'){
+    G.serveT += dt;
+    const t = G.serveT;
+
+    const flyDur = 0.80;
+    const p = clamp(t / flyDur, 0, 1);
+    const e = easeInOutCubic(p);
+
+    const start = new THREE.Vector3(0, 0, 0.06);
+    const ctrl  = new THREE.Vector3(0.04, 1.15, 0.40);
+    const end   = new THREE.Vector3(0, 0.60, -1.02);
+
+    const inv = 1 - e;
+    const x = inv*inv*start.x + 2*inv*e*ctrl.x + e*e*end.x;
+    const y = inv*inv*start.y + 2*inv*e*ctrl.y + e*e*end.y;
+    const z = inv*inv*start.z + 2*inv*e*ctrl.z + e*e*end.z;
+
+    if (p < 1){
+      mugGroup.position.set(x, y, z);
+      mugGroup.scale.setScalar(1 - e * 0.24);
+      mugGroup.rotation.y = e * 1.7;
+      mugGroup.rotation.z = Math.sin(p * Math.PI) * 0.26;
+    }
+
+    if (!G.heartsDone && t > 0.70){
+      G.heartsDone = true;
+      spawnHearts(new THREE.Vector3(0, 0.95, -1.38), 9);
+      for (let i = 0; i < 10; i++){
+        spawnSparkle(new THREE.Vector3(rand(-0.45,0.45), rand(0.35,0.95), rand(-1.45,-0.95)), 0xffd08a);
+      }
+      if (customer) customer.userData.mouth.scale.set(1.5, 1.75, 1.5);
+    }
+
+    if (customer && t > 0.70){
+      const bt = clamp((t - 0.70) / 0.95, 0, 1);
+      const bounce = Math.sin(bt * Math.PI * 2.4) * Math.exp(-bt * 2.8);
+      customer.position.y = Math.abs(bounce) * 0.13;
+      customer.rotation.z = bounce * 0.07;
+      customer.rotation.y = Math.sin(bt * 9) * 0.05;
+    }
+
+    if (p >= 1){
+      const fadeT = clamp((t - 0.86) / 0.38, 0, 1);
+      mugGroup.position.set(end.x, end.y + fadeT * 0.06, end.z);
+      mugGroup.scale.setScalar(Math.max(0.001, (1 - e * 0.24) * (1 - fadeT)));
+      mugGroup.rotation.y = 1.7 + fadeT * 1.2;
+    }
+
+    if (!G.resetDone && t > 1.24){
+      G.resetDone = true;
+      mugGroup.position.set(0, 0, 0.06);
+      mugGroup.rotation.set(0, 0, 0);
+      mugGroup.scale.setScalar(0.001);
+      G.fill = 0;
+      G.mugPop = 0;
+      G.over = false;
+      puddle.visible = false;
+      puddleMat.opacity = 0;
+      spawnCustomer();
+    }
+
+    if (t > 1.90){
+      G.phase = 'ready';
+      mugGroup.scale.setScalar(1);
+      mugGroup.position.set(0, 0, 0.06);
+    }
+  }
+
+  /* ---------- mug idle ---------- */
+  if (G.phase === 'ready' || G.phase === 'pouring'){
+    if (G.mugPop >= 1) mugGroup.scale.setScalar(1);
+    if (G.phase === 'pouring'){
+      mugGroup.rotation.z = Math.sin(G.time * 24) * 0.004 * pitcher.rotation.z;
+    } else {
+      mugGroup.rotation.z *= 0.92;
+    }
+  }
+
+  /* ---------- contact shadows ---------- */
+  mugShadow.position.set(mugGroup.position.x, 0.0035, mugGroup.position.z);
+  const sc = clamp(mugGroup.scale.x, 0, 1);
+  mugShadow.scale.setScalar(0.62 + sc * 0.38);
+  mugShadow.material.opacity = 0.18 + sc * 0.66;
+
+  potShadow.position.set(pitcher.position.x, 0.0035, pitcher.position.z);
+  const lift = clamp(1.0 - (pitcher.position.y - REST_Y) * 1.4, 0.15, 1.0);
+  potShadow.scale.setScalar(0.55 + lift * 0.45);
+  potShadow.material.opacity = 0.10 + lift * 0.55;
+
+  /* ---------- HUD ---------- */
+  if (G.phase === 'ready'){
+    setHint('Hold to pour', '');
+    tapRing.classList.add('on');
+  } else if (G.phase === 'pouring'){
+    tapRing.classList.remove('on');
+    if (G.over) setHint('Too much!', 'spill');
+    else if (G.inZone) setHint('Perfect! Let go', 'hot');
+    else if (G.fill > ZONE_MAX) setHint('Let go!', 'hot');
+    else setHint('Keep pouring…', '');
+  } else {
+    tapRing.classList.remove('on');
+    setHint('Serve to customer', 'serve');
+  }
+
+  /* ---------- bokeh ---------- */
+  for (const b of bokeh){
+    b.position.y = b.userData.baseY + Math.sin(G.time * b.userData.spd + b.userData.ph) * 0.18;
+  }
+
+  /* ---------- particles ---------- */
+  updateParticles(dt);
+
+  /* ---------- lights ---------- */
+  warmFill.intensity = 2.7 + Math.sin(G.time * 2.7) * 0.20 + Math.sin(G.time * 6.9) * 0.10;
+}
+
+/* =========================================================
+   RESIZE
+========================================================= */
+function onResize(){
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  renderer.setSize(w, h, false);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+  const aspect = w / h;
+  camera.aspect = aspect;
+
+  const dist = camera.position.distanceTo(CAM_TARGET);
+  const targetWidth = 1.62;
+  const hHalf = Math.atan((targetWidth / 2) / dist);
+  const vHalf = Math.atan(Math.tan(hHalf) / aspect);
+
+  camera.fov = clamp(2 * vHalf * 180 / Math.PI, 26, 84);
+  camera.updateProjectionMatrix();
+}
+
+window.addEventListener('resize', onResize);
+window.addEventListener('orientationchange', () => setTimeout(onResize, 130));
+
+/* =========================================================
+   BOOT
+========================================================= */
+loadGame();
+applyMugStyle(selectedMug);
+applyPitcherStyle(selectedPitcher);
+
+onResize();
+spawnCustomer();
+customer.scale.setScalar(1);
+mugGroup.scale.setScalar(1);
+G.mugPop = 0;
+G.fill = 0;
+updateHUD();
+
+setTimeout(() => {
+  loadingEl.classList.add('hide');
+  setTimeout(() => loadingEl.remove(), 650);
+}, 400);
+
+for (let i = 0; i < 12; i++){
+  setTimeout(() => {
+    spawnSparkle(new THREE.Vector3(rand(-0.9, 0.9), rand(0.15, 0.95), rand(-0.4, 0.5)), 0xffc070);
+  }, i * 105);
+}
+
+/* =========================================================
+   LOOP
+========================================================= */
+let lastTime = performance.now();
+
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+  update(dt);
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(loop);
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) lastTime = performance.now();
+});
+</script>
+</body>
+</html>
