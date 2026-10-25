@@ -44,11 +44,17 @@
   }
   .pill svg { width:19px; height:19px; display:block; }
 
-  #shopBtn, #helpBtn {
+  #scorePill { pointer-events:auto; cursor:pointer; transition: transform .12s ease; }
+  #scorePill:active { transform: scale(0.96); }
+
+  #shopBtn, #helpBtn, #achBtn {
     pointer-events:auto; cursor:pointer; font-family:inherit;
     transition: transform .12s ease;
   }
-  #shopBtn:active, #helpBtn:active { transform: scale(0.94); }
+  #shopBtn:active, #helpBtn:active, #achBtn:active { transform: scale(0.94); }
+
+  #achBtn { padding: 9px 12px; }
+  #achBtn svg { width:20px; height:20px; stroke:#ffd9a8; fill:none; }
 
   #bottom { display:flex; flex-direction:column; align-items:center; gap:12px; position:relative; z-index:2; }
 
@@ -87,13 +93,13 @@
     50%     { transform: scale(1.13); border-color: rgba(255,200,140,0.8); }
   }
 
-  /* ---------- coffee picker ---------- */
   #coffeePicker {
     display:flex; gap:9px; pointer-events:auto;
     transition: opacity .2s ease;
   }
   #coffeePicker.locked { opacity: 0.4; }
   #coffeePicker.locked .coffeeBtn { pointer-events:none; }
+  #coffeePicker.shake { animation: shakeX .35s ease; }
 
   .coffeeBtn {
     pointer-events:auto; cursor:pointer; font-family:inherit;
@@ -134,6 +140,44 @@
     44%  { opacity:1; transform: translate(-50%,-50%) scale(1) rotate(0deg); }
     76%  { opacity:1; transform: translate(-50%,-58%) scale(1); }
     100% { opacity:0; transform: translate(-50%,-98%) scale(0.8); }
+  }
+
+  #achToast {
+    position: fixed;
+    top: calc(env(safe-area-inset-top,0px) + 78px);
+    left: 50%;
+    transform: translate(-50%, -24px);
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 18px 11px 13px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #2e1e08 0%, #1a0f06 100%);
+    border: 1.5px solid rgba(255,207,90,0.65);
+    box-shadow:
+      0 8px 34px rgba(255,190,80,0.35),
+      0 0 70px rgba(255,170,50,0.18),
+      inset 0 0 18px rgba(255,200,100,0.06);
+    opacity: 0; pointer-events: none;
+    z-index: 42;
+    transition: opacity .32s ease, transform .42s cubic-bezier(.2,.9,.3,1);
+    max-width: calc(100vw - 32px);
+  }
+  #achToast.show { opacity: 1; transform: translate(-50%, 0); }
+  #achToastIcon {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffd97a, #c88a25);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 22px rgba(255,190,70,0.55), inset 0 -3px 8px rgba(120,70,10,0.5);
+    flex: 0 0 42px;
+  }
+  #achToastIcon svg { width: 22px; height: 22px; stroke:#3a2208; fill:none; }
+  #achToastText { display:flex; flex-direction:column; gap:2px; min-width:0; }
+  #achToastLabel {
+    font-size: 10.5px; font-weight: 900; letter-spacing: 1.6px;
+    text-transform: uppercase; color: #ffcf5a;
+  }
+  #achToastName {
+    font-size: 16px; font-weight: 900; color: #ffe6c4;
+    letter-spacing: .3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
   #loading {
@@ -257,6 +301,7 @@
   #helpPanel {
     position:relative; width:100%; max-width:440px; max-height: 84vh;
     overflow-y:auto; -webkit-overflow-scrolling:touch;
+    touch-action: pan-y;
     background: linear-gradient(180deg, #261708 0%, #1a0f06 100%);
     border: 1px solid rgba(255,190,120,0.22);
     border-radius: 24px;
@@ -303,6 +348,402 @@
     transition: transform .12s ease;
   }
   #helpOk:active { transform: scale(0.97); }
+
+  /* ===================== ACHIEVEMENTS PANEL ===================== */
+  #ach {
+    position:fixed; inset:0; z-index:30;
+    display:flex; align-items:center; justify-content:center;
+    pointer-events:none; opacity:0; padding: 22px;
+    transition: opacity .22s ease;
+  }
+  #ach.open { pointer-events:auto; opacity:1; }
+  #achBackdrop {
+    position:absolute; inset:0;
+    background: rgba(8,4,2,0.72);
+    backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+  }
+  #achPanel {
+    position:relative; width:100%; max-width:440px; max-height: 84vh;
+    display:flex; flex-direction:column;
+    background: linear-gradient(180deg, #261708 0%, #1a0f06 100%);
+    border: 1px solid rgba(255,190,120,0.22);
+    border-radius: 24px;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.72);
+    transform: translateY(16px) scale(0.96);
+    transition: transform .3s cubic-bezier(.2,.9,.3,1);
+    overflow: hidden;
+  }
+  #ach.open #achPanel { transform: translateY(0) scale(1); }
+  #achHead {
+    display:flex; align-items:center; gap:10px;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid rgba(255,190,120,0.10);
+  }
+  #achHeadIcon {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffd97a, #c88a25);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 0 16px rgba(255,190,70,0.45);
+    flex: 0 0 34px;
+  }
+  #achHeadIcon svg { width:18px; height:18px; stroke:#3a2208; fill:none; }
+  #achHeadText { flex:1; display:flex; flex-direction:column; gap:2px; }
+  #achTitle { font-size:19px; font-weight:900; color:#ffe6c4; letter-spacing:.4px; }
+  #achSub { font-size:12.5px; font-weight:700; color:#c99b6a; letter-spacing:.3px; }
+  #achClose {
+    pointer-events:auto; cursor:pointer;
+    width:36px; height:36px; border-radius:50%;
+    background: rgba(255,190,120,0.08);
+    border: 1px solid rgba(255,190,120,0.18);
+    display:flex; align-items:center; justify-content:center;
+    transition: transform .12s ease, background .15s;
+    flex: 0 0 36px;
+  }
+  #achClose:active { transform: scale(0.9); background: rgba(255,190,120,0.18); }
+  #achClose svg { width:16px; height:16px; stroke:#ffd9a8; }
+  #achBody {
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+    touch-action: pan-y;
+    padding: 12px 16px 18px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .achRow {
+    display:flex; align-items:center; gap:12px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(255,220,170,0.045);
+    border: 1.5px solid rgba(255,190,120,0.12);
+    transition: border-color .2s, background .2s;
+  }
+  .achRow.unlocked {
+    background: linear-gradient(135deg, rgba(255,205,90,0.13), rgba(255,150,40,0.05));
+    border-color: rgba(255,207,90,0.55);
+    box-shadow: inset 0 0 18px rgba(255,190,80,0.08);
+  }
+  .achRowIcon {
+    width: 40px; height: 40px; border-radius: 50%;
+    flex: 0 0 40px;
+    display:flex; align-items:center; justify-content:center;
+    background: rgba(255,200,120,0.08);
+    border: 1px solid rgba(255,190,120,0.16);
+  }
+  .achRowIcon svg { width:20px; height:20px; stroke:#8a6a44; fill:none; }
+  .achRow.unlocked .achRowIcon {
+    background: radial-gradient(circle at 35% 30%, #ffd97a, #c88a25);
+    border-color: transparent;
+    box-shadow: 0 0 16px rgba(255,190,70,0.45);
+  }
+  .achRow.unlocked .achRowIcon svg { stroke:#3a2208; }
+  .achRowBody { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+  .achRowName {
+    font-size:14.5px; font-weight:900; color:#c9a482;
+    letter-spacing:.3px;
+  }
+  .achRow.unlocked .achRowName { color:#ffe6c4; }
+  .achRowDesc {
+    font-size:11.5px; font-weight:700; color:#8a6a48;
+    letter-spacing:.2px;
+  }
+  .achRow.unlocked .achRowDesc { color:#d1a870; }
+  .achRowBar {
+    height: 5px; border-radius: 999px;
+    background: rgba(255,200,120,0.10);
+    overflow: hidden; margin-top: 4px;
+  }
+  .achRowBarFill {
+    height:100%; border-radius: 999px;
+    background: linear-gradient(90deg, #ffb74d, #ffcf5a);
+    transition: width .4s ease;
+  }
+  .achRow.unlocked .achRowBarFill {
+    background: linear-gradient(90deg, #ffd97a, #ffe9a8);
+    box-shadow: 0 0 12px rgba(255,220,120,0.65);
+  }
+  .achRowMeta {
+    flex: 0 0 auto;
+    text-align: right;
+    font-size: 12px; font-weight: 900;
+    color:#8a6a48; letter-spacing:.3px;
+    display:flex; flex-direction:column; align-items:flex-end; gap:4px;
+  }
+  .achRow.unlocked .achRowMeta { color:#ffcf5a; }
+  .achRowCheck {
+    width: 22px; height: 22px; border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    background: rgba(255,200,120,0.10);
+    border: 1px solid rgba(255,190,120,0.20);
+  }
+  .achRowCheck svg { width:12px; height:12px; stroke:#8a6a48; fill:none; }
+  .achRow.unlocked .achRowCheck {
+    background: #ffcf5a; border-color: #ffcf5a;
+    box-shadow: 0 0 12px rgba(255,200,90,0.6);
+  }
+  .achRow.unlocked .achRowCheck svg { stroke:#3a2208; }
+
+  /* ===================== SECRET CODE PANEL ===================== */
+  #code {
+    position:fixed; inset:0; z-index:35;
+    display:flex; align-items:center; justify-content:center;
+    pointer-events:none; opacity:0; padding: 22px;
+    transition: opacity .22s ease;
+  }
+  #code.open { pointer-events:auto; opacity:1; }
+  #codeBackdrop {
+    position:absolute; inset:0;
+    background: rgba(8,4,2,0.80);
+    backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+  }
+  #codePanel {
+    position:relative; width:100%; max-width:380px;
+    background: linear-gradient(180deg, #261708 0%, #1a0f06 100%);
+    border: 1px solid rgba(255,190,120,0.25);
+    border-radius: 24px;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.78);
+    transform: translateY(16px) scale(0.96);
+    transition: transform .3s cubic-bezier(.2,.9,.3,1);
+    overflow: hidden;
+  }
+  #code.open #codePanel { transform: translateY(0) scale(1); }
+  #codeHead {
+    display:flex; align-items:center; gap:10px;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid rgba(255,190,120,0.10);
+  }
+  #codeHeadIcon {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffd97a, #c88a25);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 0 16px rgba(255,190,70,0.45);
+    flex: 0 0 34px;
+  }
+  #codeHeadIcon svg { width:18px; height:18px; }
+  #codeHeadText { flex:1; display:flex; flex-direction:column; gap:2px; }
+  #codeTitle { font-size:18px; font-weight:900; color:#ffe6c4; letter-spacing:.4px; }
+  #codeSub { font-size:12px; font-weight:700; color:#c99b6a; letter-spacing:.3px; }
+  #codeClose {
+    pointer-events:auto; cursor:pointer;
+    width:36px; height:36px; border-radius:50%;
+    background: rgba(255,190,120,0.08);
+    border: 1px solid rgba(255,190,120,0.18);
+    display:flex; align-items:center; justify-content:center;
+    transition: transform .12s ease, background .15s;
+    flex: 0 0 36px;
+  }
+  #codeClose:active { transform: scale(0.9); background: rgba(255,190,120,0.18); }
+  #codeClose svg { width:16px; height:16px; stroke:#ffd9a8; }
+  #codeBody {
+    padding: 18px 20px 20px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  #codeInput {
+    width:100%;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1.5px solid rgba(255,190,120,0.25);
+    background: rgba(10,6,3,0.65);
+    color: #ffe6c4;
+    font-family: inherit;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    text-align: center;
+    outline: none;
+    user-select: text; -webkit-user-select: text;
+    touch-action: manipulation;
+    transition: border-color .18s, box-shadow .18s;
+    caret-color: #ffcf5a;
+  }
+  #codeInput:focus {
+    border-color: #ffcf5a;
+    box-shadow: 0 0 22px rgba(255,190,80,0.30);
+  }
+  #codeInput::placeholder {
+    color: rgba(255,220,176,0.30);
+    letter-spacing: 1px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  #codeSubmit {
+    pointer-events:auto; cursor:pointer; font-family:inherit;
+    padding: 13px; border-radius: 14px; border:none;
+    background: linear-gradient(180deg, #f0b667, #d99344);
+    color:#2a1505; font-size:16px; font-weight:900; letter-spacing:.6px;
+    box-shadow: 0 8px 24px rgba(220,140,60,0.35);
+    transition: transform .12s ease;
+  }
+  #codeSubmit:active { transform: scale(0.97); }
+  #codeFeedback {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: .3px;
+    min-height: 18px;
+    color: #8dffb4;
+    transition: color .2s;
+  }
+  #codeFeedback.error { color: #ff8b7a; }
+  #codeFeedback.success { color: #8dffb4; }
+
+  /* ===================== MIMI WARDROBE ===================== */
+  #mimi {
+    position:fixed; inset:0; z-index:37;
+    display:flex; align-items:flex-start; justify-content:center;
+    pointer-events:none; opacity:0;
+    transition: opacity .28s ease;
+  }
+  #mimi.open { pointer-events:auto; opacity:1; }
+  #mimiBackdrop {
+    position:absolute; inset:0;
+    background: rgba(8,4,14,0.14);
+  }
+  #mimiPanel {
+    position:relative; width:100%; max-width:520px;
+    height: 56vh; min-height: 340px;
+    display:flex; flex-direction:column;
+    background: linear-gradient(180deg, #2a1535 0%, #1a0f22 100%);
+    border: 1px solid rgba(220,130,255,0.32);
+    border-top: none;
+    border-radius: 0 0 26px 26px;
+    box-shadow:
+      0 14px 60px rgba(160,80,255,0.40),
+      0 0 140px rgba(180,90,255,0.20);
+    transform: translateY(-102%);
+    transition: transform .42s cubic-bezier(.2,.9,.3,1);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
+    overflow: hidden;
+  }
+  #mimi.open #mimiPanel { transform: translateY(0); }
+  #mimiHead {
+    display:flex; align-items:center; gap:10px;
+    padding: 10px 16px 10px;
+    border-bottom: 1px solid rgba(220,130,255,0.16);
+  }
+  #mimiHeadIcon {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffd0f0, #d66bff);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 0 18px rgba(255,140,220,0.55);
+    flex: 0 0 34px;
+  }
+  #mimiHeadIcon svg { width:18px; height:18px; }
+  #mimiHeadText { flex:1; display:flex; flex-direction:column; gap:2px; min-width:0; }
+  #mimiTitle { font-size:17px; font-weight:900; color:#ffe4f4; letter-spacing:.4px; }
+  #mimiSub { font-size:11.5px; font-weight:700; color:#c9a8d8; letter-spacing:.3px; }
+  #mimiClose {
+    pointer-events:auto; cursor:pointer;
+    width:34px; height:34px; border-radius:50%;
+    background: rgba(255,180,230,0.10);
+    border: 1px solid rgba(255,180,230,0.22);
+    display:flex; align-items:center; justify-content:center;
+    transition: transform .12s ease, background .15s;
+    flex: 0 0 34px;
+  }
+  #mimiClose:active { transform: scale(0.9); background: rgba(255,180,230,0.22); }
+  #mimiClose svg { width:16px; height:16px; stroke:#ffe4f4; }
+  #mimiBody {
+    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    padding: 6px 12px 12px;
+  }
+  .mimiSection {
+    font-size: 11px; font-weight: 900; letter-spacing: 1.4px;
+    text-transform: uppercase; color:#d4a4e8;
+    padding: 12px 4px 6px;
+  }
+  .mimiGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .mimiCard {
+    pointer-events: auto; cursor: pointer; font-family: inherit;
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: rgba(255,200,255,0.05);
+    border: 1.5px solid rgba(220,130,255,0.15);
+    border-radius: 12px;
+    padding: 9px 4px 7px;
+    transition: transform .12s ease, border-color .18s, background .18s, box-shadow .18s;
+  }
+  .mimiCard:active { transform: scale(0.94); }
+  .mimiCardIcon {
+    display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px;
+  }
+  .mimiCardIcon svg { width: 34px; height: 34px; display: block; }
+  .mimiCardName {
+    font-size: 9.5px; font-weight: 800; color: #dcc0e8;
+    text-align: center; line-height: 1.1;
+    letter-spacing: .2px;
+  }
+  .mimiCard.previewing {
+    border-color: #ffb8ec;
+    background: rgba(255,180,235,0.12);
+    box-shadow: 0 0 22px rgba(255,180,230,0.55);
+  }
+  .mimiCard.selected {
+    border-color: #ff8fe0;
+    background: rgba(255,140,220,0.16);
+    box-shadow: 0 0 16px rgba(255,140,220,0.45);
+  }
+  .mimiCard.selected::after {
+    content: "✓";
+    position: absolute; top: -5px; right: -5px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #ff8fe0; color: #2a1535;
+    font-size: 10px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 10px rgba(255,140,220,0.7);
+  }
+  .mimiSteamRow {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px;
+    margin-top: 14px;
+    background: rgba(255,200,255,0.045);
+    border: 1.5px solid rgba(220,130,255,0.18);
+    border-radius: 14px;
+  }
+  .mimiSteamLabel {
+    font-size: 13px; font-weight: 800; color: #e0c8e8;
+    letter-spacing: .3px;
+  }
+  .mimiSwitch {
+    pointer-events: auto; cursor: pointer; font-family: inherit;
+    width: 46px; height: 26px; border-radius: 999px;
+    background: rgba(255,200,255,0.10);
+    border: 1.5px solid rgba(220,130,255,0.25);
+    position: relative;
+    transition: background .2s, border-color .2s;
+  }
+  .mimiSwitch::after {
+    content: "";
+    position: absolute; top: 2px; left: 2px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #b8a8c4;
+    transition: transform .22s cubic-bezier(.2,.9,.3,1), background .2s;
+  }
+  .mimiSwitch.on {
+    background: rgba(255,140,220,0.30);
+    border-color: #ff8fe0;
+  }
+  .mimiSwitch.on::after {
+    transform: translateX(20px);
+    background: #ff8fe0;
+    box-shadow: 0 0 10px rgba(255,140,220,0.75);
+  }
+  #mimiFoot {
+    padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 14px);
+    border-top: 1px solid rgba(220,130,255,0.14);
+  }
+  #mimiContinue {
+    pointer-events: auto; cursor: pointer; font-family: inherit;
+    width: 100%; padding: 13px; border-radius: 14px; border: none;
+    background: linear-gradient(180deg, #ff8fe0, #c96bff);
+    color: #2a1535; font-size: 15px; font-weight: 900; letter-spacing: .5px;
+    box-shadow: 0 8px 26px rgba(255,140,220,0.40);
+    transition: transform .12s ease;
+  }
+  #mimiContinue:active { transform: scale(0.97); }
 </style>
 </head>
 <body>
@@ -316,6 +757,7 @@
     </div>
     <div class="pillRow">
       <button class="pill" id="helpBtn" type="button"></button>
+      <button class="pill" id="achBtn" type="button" aria-label="Achievements"></button>
       <button class="pill" id="shopBtn" type="button"></button>
     </div>
   </div>
@@ -325,6 +767,14 @@
     <div id="coffeePicker"></div>
   </div>
   <div id="toast"></div>
+</div>
+
+<div id="achToast" role="status" aria-live="polite">
+  <div id="achToastIcon"></div>
+  <div id="achToastText">
+    <div id="achToastLabel">Achievement Unlocked</div>
+    <div id="achToastName">First Sips</div>
+  </div>
 </div>
 
 <div id="shop">
@@ -353,6 +803,67 @@
   </div>
 </div>
 
+<div id="ach">
+  <div id="achBackdrop"></div>
+  <div id="achPanel">
+    <div id="achHead">
+      <div id="achHeadIcon"></div>
+      <div id="achHeadText">
+        <div id="achTitle">Achievements</div>
+        <div id="achSub">0 / 6 unlocked</div>
+      </div>
+      <button id="achClose" type="button" aria-label="Close achievements"></button>
+    </div>
+    <div id="achBody"></div>
+  </div>
+</div>
+
+<div id="code">
+  <div id="codeBackdrop"></div>
+  <div id="codePanel">
+    <div id="codeHead">
+      <div id="codeHeadIcon"></div>
+      <div id="codeHeadText">
+        <div id="codeTitle">Secret Code</div>
+        <div id="codeSub">Psst — got a code?</div>
+      </div>
+      <button id="codeClose" type="button" aria-label="Close"></button>
+    </div>
+    <div id="codeBody">
+      <input id="codeInput" type="text" placeholder="Enter code…" maxlength="8" autocomplete="off" autocorrect="off" spellcheck="false" />
+      <button id="codeSubmit" type="button">Redeem</button>
+      <div id="codeFeedback"></div>
+    </div>
+  </div>
+</div>
+
+<div id="mimi">
+  <div id="mimiBackdrop"></div>
+  <div id="mimiPanel">
+    <div id="mimiHead">
+      <div id="mimiHeadIcon"></div>
+      <div id="mimiHeadText">
+        <div id="mimiTitle">Mimi's Collection</div>
+        <div id="mimiSub">Preview & pick your favorites — the scene above updates live</div>
+      </div>
+      <button id="mimiClose" type="button" aria-label="Close"></button>
+    </div>
+    <div id="mimiBody">
+      <div class="mimiSection">Mugs</div>
+      <div class="mimiGrid" id="mimiMugGrid"></div>
+      <div class="mimiSection">Pitchers</div>
+      <div class="mimiGrid" id="mimiPitcherGrid"></div>
+      <div class="mimiSteamRow">
+        <div class="mimiSteamLabel">Steaming coffee</div>
+        <button id="mimiSteamToggle" class="mimiSwitch on" type="button" aria-label="Toggle steaming coffee"></button>
+      </div>
+    </div>
+    <div id="mimiFoot">
+      <button id="mimiContinue" type="button">Continue</button>
+    </div>
+  </div>
+</div>
+
 <div id="loading">Warming up the kettle…</div>
 
 <script type="importmap">
@@ -367,7 +878,7 @@
 import * as THREE from 'three';
 
 /* =========================================================
-   SVG ICON HELPERS  (no emojis anywhere)
+   SVG ICON HELPERS
 ========================================================= */
 const starSVG = (size = 20, color = '#ffcf5a') =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" aria-hidden="true">
@@ -396,6 +907,30 @@ const qSVG = (size = 19, color = '#ffd9a8') =>
      <circle cx="12" cy="17" r="1.15" fill="${color}" stroke="none"/>
    </svg>`;
 
+const trophySVG = (size = 20, color = '#3a2208') =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+     <path d="M6 4h12v5a6 6 0 0 1-12 0V4z"/>
+     <path d="M6 5H4.2a2.2 2.2 0 0 0 0 4.4H6"/>
+     <path d="M18 5h1.8a2.2 2.2 0 0 1 0 4.4H18"/>
+     <path d="M12 15v3"/>
+     <path d="M8.5 21h7"/>
+     <path d="M9.5 18h5"/>
+   </svg>`;
+
+const lockSVG = (size = 18, color = '#8a6a48') =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+     <rect x="4.5" y="10.5" width="15" height="10" rx="2.2"/>
+     <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
+   </svg>`;
+
+const checkSVG = (size = 12, color = '#3a2208') =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}"
+        stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+     <path d="M5 12.5l4.5 4.5L19 7.5"/>
+   </svg>`;
+
 const xSVG = (size = 17, color = '#ffd9a8') =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}"
         stroke-width="2.6" stroke-linecap="round" aria-hidden="true">
@@ -407,6 +942,20 @@ const tapSVG = (size = 25) =>
         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
      <circle cx="12" cy="12" r="3.6"/>
      <path d="M12 2.4v3.4M12 18.2v3.4M2.4 12h3.4M18.2 12h3.4M5.2 5.2l2.4 2.4M16.4 16.4l2.4 2.4M18.8 5.2l-2.4 2.4M7.6 16.4l-2.4 2.4"/>
+   </svg>`;
+
+const keySVG = (size = 18, color = '#3a2208') =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+     <circle cx="8" cy="15" r="4.2"/>
+     <path d="M11.2 11.8L20 3"/>
+     <path d="M16.8 6.2l1.8 1.8"/>
+     <path d="M14.2 8.8l1.8 1.8"/>
+   </svg>`;
+
+const heartSVG = (size = 18, color = '#2a1535') =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" aria-hidden="true">
+     <path d="M12 21c-1.6-1.4-8-7.2-8-12a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 4.8-6.4 10.6-8 12z"/>
    </svg>`;
 
 const mugIcon = (color) =>
@@ -428,7 +977,7 @@ const pitcherIcon = (color) =>
    </svg>`;
 
 /* =========================================================
-   COFFEE TYPES  +  3D ICON TEXTURES
+   COFFEE TYPES
 ========================================================= */
 const coffeeTypes = [
   { id:'regular',     name:'Regular',       short:'Regular', liquid:0x3d1f0d, crema:0xffffff, emissive:0x1a0a04, ring:'#ffd9a8' },
@@ -437,7 +986,6 @@ const coffeeTypes = [
 ];
 
 const iconBody = {
-  /* a warm coffee cup with steam */
   regular: `
     <path d="M22 12c0-3 2.5-3 2.5-6M31 10c0-3 2.5-3 2.5-6M40 12c0-3 2.5-3 2.5-6"
           fill="none" stroke="#ffe9c9" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
@@ -446,7 +994,6 @@ const iconBody = {
     <path d="M42 28h2.6a6 6 0 0 1 0 12H42" fill="none"
           stroke="#c99b6a" stroke-width="2.6" stroke-linecap="round"/>
     <ellipse cx="26" cy="24" rx="16" ry="3.6" fill="#3d1f0d"/>`,
-  /* a plump pumpkin */
   pumpkin: `
     <path d="M32 18c0-4.5 2.6-6.6 6.4-7.2" fill="none"
           stroke="#6d8f3c" stroke-width="4.2" stroke-linecap="round"/>
@@ -454,7 +1001,6 @@ const iconBody = {
     <path d="M32 24v32M22 25.8c-3.8 3.8-5.8 8.7-5.8 14.2s2 10.4 5.8 14.2M42 25.8c3.8 3.8 5.8 8.7 5.8 14.2s-2 10.4-5.8 14.2"
           fill="none" stroke="#d96f1e" stroke-width="2.4" stroke-linecap="round" opacity="0.7"/>
     <ellipse cx="24" cy="33" rx="5.5" ry="3.2" fill="#ffb877" opacity="0.55"/>`,
-  /* a gingerbread man */
   gingerbread: `
     <g fill="#a86a34">
       <circle cx="32" cy="16.5" r="9.5"/>
@@ -509,8 +1055,8 @@ function svgToTexture(svg, size = 256){
   return t;
 }
 
-const iconTex   = {};   // floating badge above the pitcher
-const bubbleTex = {};   // customer request speech bubble
+const iconTex   = {};
+const bubbleTex = {};
 coffeeTypes.forEach(c => {
   iconTex[c.id]   = svgToTexture(badgeSVG(c.id));
   bubbleTex[c.id] = svgToTexture(bubbleSVG(c.id));
@@ -612,22 +1158,22 @@ function makeCremaTexture(){
   const s = 256;
   const c = document.createElement('canvas'); c.width = c.height = s;
   const g = c.getContext('2d');
-  g.fillStyle = '#8f5a2c'; g.fillRect(0,0,s,s);
+  g.fillStyle = '#ffffff'; g.fillRect(0,0,s,s);
   for (let i=0;i<70;i++){
     const x = Math.random()*s, y = Math.random()*s, r = 6 + Math.random()*30;
     g.beginPath(); g.arc(x,y,r,0,Math.PI*2);
-    g.fillStyle = `rgba(${150+Math.random()*60|0},${100+Math.random()*45|0},${55+Math.random()*35|0},${0.06+Math.random()*0.16})`;
+    g.fillStyle = `rgba(230,210,180,${0.06+Math.random()*0.16})`;
     g.fill();
   }
   for (let i=0;i<50;i++){
     const x = Math.random()*s, y = Math.random()*s, r = 2 + Math.random()*9;
     g.beginPath(); g.arc(x,y,r,0,Math.PI*2);
-    g.fillStyle = `rgba(${90+Math.random()*40|0},${52+Math.random()*30|0},${24+Math.random()*18|0},${0.10+Math.random()*0.22})`;
+    g.fillStyle = `rgba(200,170,130,${0.10+Math.random()*0.22})`;
     g.fill();
   }
   const gr = g.createRadialGradient(s/2,s/2,s*0.18,s/2,s/2,s*0.5);
-  gr.addColorStop(0,'rgba(0,0,0,0)');
-  gr.addColorStop(1,'rgba(140,88,44,1)');
+  gr.addColorStop(0,'rgba(255,255,255,0)');
+  gr.addColorStop(1,'rgba(220,200,170,1)');
   g.fillStyle = gr; g.fillRect(0,0,s,s);
   return tex(c);
 }
@@ -654,6 +1200,58 @@ function makeEnvTexture(){
   return t;
 }
 
+function makeMarbleTexture(baseColor, veinDark, veinLight){
+  const s = 512;
+  const c = document.createElement('canvas'); c.width = c.height = s;
+  const g = c.getContext('2d');
+
+  g.fillStyle = baseColor;
+  g.fillRect(0,0,s,s);
+
+  for (let i = 0; i < 60; i++){
+    const x = Math.random()*s, y = Math.random()*s, r = 30 + Math.random()*90;
+    const grd = g.createRadialGradient(x,y,0,x,y,r);
+    const isLight = Math.random() < 0.5;
+    grd.addColorStop(0, isLight ? 'rgba(255,255,255,0.045)' : 'rgba(0,0,0,0.09)');
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grd;
+    g.fillRect(0,0,s,s);
+  }
+
+  function drawVein(startX, startY, len, color, width, alpha){
+    g.strokeStyle = color;
+    g.lineWidth = width;
+    g.globalAlpha = alpha;
+    g.lineCap = 'round';
+    g.beginPath();
+    let x = startX, y = startY;
+    g.moveTo(x, y);
+    const segs = 15 + (Math.random()*15 | 0);
+    for (let i = 0; i < segs; i++){
+      const nx = x + (Math.random()-0.5)*70;
+      const ny = y + len/segs;
+      const cx = (x+nx)/2 + (Math.random()-0.5)*50;
+      const cy = (y+ny)/2;
+      g.quadraticCurveTo(cx, cy, nx, ny);
+      x = nx; y = ny;
+    }
+    g.stroke();
+  }
+
+  for (let i = 0; i < 12; i++){
+    drawVein(Math.random()*s, -40, s+80, veinDark, 0.4 + Math.random()*1.4, 0.30 + Math.random()*0.35);
+  }
+  for (let i = 0; i < 9; i++){
+    drawVein(Math.random()*s, -40, s+80, veinLight, 0.5 + Math.random()*1.6, 0.20 + Math.random()*0.35);
+  }
+  g.globalAlpha = 1;
+
+  const t = tex(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(1.5, 1.5);
+  return t;
+}
+
 /* =========================================================
    RENDERER / SCENE / CAMERA
 ========================================================= */
@@ -674,8 +1272,12 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromEquirectangular(makeEnvTexture()).texture;
 
 const CAM_TARGET = new THREE.Vector3(0.14, 0.30, 0.02);
+const NORMAL_CAM_POS = new THREE.Vector3(0.14, 1.72, 2.52);
+const MIMI_CAM_POS   = new THREE.Vector3(0.28, 2.05, 2.05);
+const MIMI_CAM_TARGET= new THREE.Vector3(0.28, 0.02, 0.02);
+
 const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 60);
-camera.position.set(0.14, 1.72, 2.52);
+camera.position.copy(NORMAL_CAM_POS);
 camera.lookAt(CAM_TARGET);
 
 /* =========================================================
@@ -782,7 +1384,9 @@ const ceramicMat = new THREE.MeshStandardMaterial({
   roughness: 0.22,
   metalness: 0.02,
   side: THREE.DoubleSide,
-  envMapIntensity: 0.95
+  envMapIntensity: 0.95,
+  emissive: 0x000000,
+  emissiveIntensity: 0
 });
 
 const cupProfile = [
@@ -809,7 +1413,8 @@ cupMesh.receiveShadow = true;
 mugGroup.add(cupMesh);
 
 const handleMat = new THREE.MeshStandardMaterial({
-  color: 0xfbf8f3, roughness: 0.22, metalness: 0.02, envMapIntensity: 0.95
+  color: 0xfbf8f3, roughness: 0.22, metalness: 0.02, envMapIntensity: 0.95,
+  emissive: 0x000000, emissiveIntensity: 0
 });
 const handle = new THREE.Mesh(new THREE.TorusGeometry(0.080, 0.023, 14, 30), handleMat);
 handle.position.set(-0.266, 0.170, 0);
@@ -825,7 +1430,6 @@ mugShadow.rotation.x = -Math.PI/2;
 mugShadow.position.set(0, 0.0035, 0.06);
 scene.add(mugShadow);
 
-/* ---- coffee liquid ---- */
 const coffeeMat = new THREE.MeshStandardMaterial({
   color: 0x3d1f0d,
   roughness: 0.20,
@@ -841,6 +1445,7 @@ mugGroup.add(coffee);
 
 const cremaMat = new THREE.MeshStandardMaterial({
   map: makeCremaTexture(),
+  color: 0xffffff,
   roughness: 0.55,
   metalness: 0.02,
   transparent: true,
@@ -850,7 +1455,6 @@ const crema = new THREE.Mesh(new THREE.CircleGeometry(COFFEE_R*0.985, 44), crema
 crema.rotation.x = -Math.PI/2;
 mugGroup.add(crema);
 
-/* ---- spill puddle on the counter ---- */
 const puddleMat = new THREE.MeshStandardMaterial({
   color: 0x3a1d0c, roughness: 0.10, metalness: 0.45,
   transparent: true, opacity: 0, depthWrite: false
@@ -861,7 +1465,6 @@ puddle.position.set(0, 0.0042, 0.06);
 puddle.visible = false;
 scene.add(puddle);
 
-/* ---- green target zone (inner wall, slightly conical to match mug) ---- */
 const zoneMinY = LIQ_BASE_Y + ZONE_MIN * FILL_MAX_H;
 const zoneMaxY = LIQ_BASE_Y + ZONE_MAX * FILL_MAX_H;
 
@@ -1007,7 +1610,6 @@ potShadow.rotation.x = -Math.PI/2;
 potShadow.position.set(0.52, 0.0035, 0.02);
 scene.add(potShadow);
 
-/* ---- floating coffee-type badge above the pitcher ---- */
 const pitcherLogoMat = new THREE.SpriteMaterial({
   map: iconTex[coffeeTypes[0].id],
   transparent: true,
@@ -1019,7 +1621,7 @@ pitcherLogo.position.set(0.52, 0.60, 0.02);
 scene.add(pitcherLogo);
 
 /* =========================================================
-   COFFEE STREAM (curved tube rebuilt each frame)
+   COFFEE STREAM
 ========================================================= */
 const streamMat = new THREE.MeshStandardMaterial({
   color: 0x4a2410,
@@ -1150,17 +1752,14 @@ function makeCustomer(){
   g.add(mouth);
   g.userData.mouth = mouth;
 
-  /* ---- what this customer wants ---- */
   let want = coffeeTypes[(Math.random() * coffeeTypes.length) | 0].id;
   if (coffeeTypes.length > 1 && want === lastWant){
-    // avoid the exact same order twice in a row
     const others = coffeeTypes.filter(c => c.id !== lastWant);
     want = others[(Math.random() * others.length) | 0].id;
   }
   lastWant = want;
   g.userData.want = want;
 
-  /* ---- request speech bubble ---- */
   const bubbleMat = new THREE.SpriteMaterial({
     map: bubbleTex[want],
     transparent: true,
@@ -1312,20 +1911,22 @@ function updateParticles(dt){
    SHOP DATA
 ========================================================= */
 const mugStyles = [
-  { name:'Classic White', color:'#fbf8f3', price:0 },
-  { name:'Blush Pink',    color:'#f0c2bd', price:10 },
-  { name:'Sage Green',    color:'#b7cbb0', price:10 },
-  { name:'Sky Blue',      color:'#a6c8de', price:18 },
-  { name:'Midnight',      color:'#343a45', price:30 },
-  { name:'Terracotta',    color:'#c9714d', price:40 }
+  { name:'Classic White', color:'#fbf8f3', roughness:0.22, price:0 },
+  { name:'Pitch Black',   color:'#0a0a0c', displayColor:'#3a3a42', roughness:0.38, price:20 },
+  { name:'Glow Purple',   color:'#a855f7', displayColor:'#b56bff', glow:'#7c3aed', emissive:'#7c3aed', emissiveIntensity:0.9, roughness:0.18, price:50 },
+  { name:'Marble Maroon', color:'#5c1a1a', displayColor:'#7a2626', texture:'marble', roughness:0.22, price:100 }
 ];
 
 const pitcherStyles = [
   { name:'Matte Black',  color:'#1a1b20', metalness:0.35, roughness:0.42, price:0 },
   { name:'Cream Enamel', color:'#e6dcc6', metalness:0.05, roughness:0.52, price:15 },
-  { name:'Copper',       color:'#b87333', metalness:0.95, roughness:0.26, price:30 },
-  { name:'Deep Forest',  color:'#2d4a3e', metalness:0.30, roughness:0.45, price:45 },
-  { name:'Rose Gold',    color:'#d9a29b', metalness:0.90, roughness:0.30, price:60 }
+  { name:'Copper',       color:'#b87333', metalness:0.95, roughness:0.26, price:28 },
+  { name:'Deep Forest',  color:'#2d4a3e', metalness:0.30, roughness:0.45, price:40 },
+  { name:'Rose Gold',    color:'#d9a29b', metalness:0.90, roughness:0.30, price:55 },
+  { name:'Sapphire',     color:'#2a4a7c', metalness:0.85, roughness:0.20, price:70 },
+  { name:'Pearl White',  color:'#f0ece2', metalness:0.55, roughness:0.15, price:85 },
+  { name:'Antique Brass',color:'#9c7c4a', metalness:0.88, roughness:0.35, price:100 },
+  { name:'Obsidian',     color:'#1c1c22', metalness:0.75, roughness:0.10, price:120 }
 ];
 
 let ownedMugs = new Set([0]);
@@ -1334,11 +1935,43 @@ let selectedMug = 0;
 let selectedPitcher = 0;
 let selectedCoffee = 0;
 let seenHelp = false;
+let steamEnabled = true;
+let marbleTex = null;
 
 function applyMugStyle(i){
   const s = mugStyles[i];
+
+  ceramicMat.map = null;
+  handleMat.map = null;
+  ceramicMat.emissive.set(0x000000);
+  handleMat.emissive.set(0x000000);
+  ceramicMat.emissiveIntensity = 0;
+  handleMat.emissiveIntensity = 0;
+
   ceramicMat.color.set(s.color);
   handleMat.color.set(s.color);
+
+  const r = s.roughness !== undefined ? s.roughness : 0.22;
+  ceramicMat.roughness = r;
+  handleMat.roughness = r;
+
+  if (s.emissive){
+    ceramicMat.emissive.set(s.emissive);
+    handleMat.emissive.set(s.emissive);
+    ceramicMat.emissiveIntensity = s.emissiveIntensity || 0.8;
+    handleMat.emissiveIntensity = s.emissiveIntensity || 0.8;
+  }
+
+  if (s.texture === 'marble'){
+    if (!marbleTex) marbleTex = makeMarbleTexture('#5c1a1a', '#220606', '#9a3a3a');
+    ceramicMat.map = marbleTex;
+    handleMat.map = marbleTex;
+    ceramicMat.color.set(0xffffff);
+    handleMat.color.set(0xffffff);
+  }
+
+  ceramicMat.needsUpdate = true;
+  handleMat.needsUpdate = true;
 }
 
 function applyPitcherStyle(i){
@@ -1359,12 +1992,51 @@ function applyCoffeeStyle(){
   innerCoffeeMat.color.set(c.liquid);
   puddleMat.color.set(c.liquid);
   pitcherLogoMat.map = iconTex[c.id];
+  pitcherLogoMat.needsUpdate = true;
+}
+
+/* =========================================================
+   ACHIEVEMENTS  —  cups poured, rewards in stars
+========================================================= */
+const ACHIEVEMENTS = [
+  { id:'c10',  cups:10,  stars:3,   name:'First Sips',     desc:'Pour 10 cups'  },
+  { id:'c25',  cups:25,  stars:5,   name:'Coffee Regular', desc:'Pour 25 cups'  },
+  { id:'c50',  cups:50,  stars:10,  name:'Barista',        desc:'Pour 50 cups'  },
+  { id:'c100', cups:100, stars:25,  name:'Master Barista', desc:'Pour 100 cups' },
+  { id:'c250', cups:250, stars:50,  name:'Café Legend',    desc:'Pour 250 cups' },
+  { id:'c500', cups:500, stars:100, name:'Coffee Immortal',desc:'Pour 500 cups' }
+];
+
+let totalStars = 0;
+let unlockedAchievements = new Set();
+
+function checkAchievements(silent){
+  let any = false;
+  for (const a of ACHIEVEMENTS){
+    if (!unlockedAchievements.has(a.id) && G.served >= a.cups){
+      unlockedAchievements.add(a.id);
+      G.score += a.stars;
+      totalStars += a.stars;
+      any = true;
+      if (!silent) showAchievementToast(a);
+    }
+  }
+  if (any) updateHUD();
+  saveGame();
+}
+
+function awardStars(n){
+  if (n <= 0) return;
+  G.score += n;
+  totalStars += n;
+  updateHUD();
+  saveGame();
 }
 
 /* =========================================================
    SAVE / LOAD
 ========================================================= */
-const SAVE_KEY = 'cozyCoffee_v3';
+const SAVE_KEY = 'cozyCoffee_v5';
 
 function saveGame(){
   try {
@@ -1376,27 +2048,48 @@ function saveGame(){
       mug: selectedMug,
       pitcher: selectedPitcher,
       coffee: coffeeTypes[selectedCoffee].id,
-      seenHelp: seenHelp
+      seenHelp: seenHelp,
+      totalStars: totalStars,
+      achievements: [...unlockedAchievements],
+      steamEnabled: steamEnabled
     }));
   } catch(e){}
 }
 
 function loadGame(){
   try {
-    const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem('cozyCoffee_v2');
+    const raw = localStorage.getItem(SAVE_KEY)
+             || localStorage.getItem('cozyCoffee_v4')
+             || localStorage.getItem('cozyCoffee_v3')
+             || localStorage.getItem('cozyCoffee_v2');
     if (!raw) return;
     const d = JSON.parse(raw);
     G.score  = Math.max(0, d.score | 0);
     G.served = Math.max(0, d.served | 0);
-    ownedMugs = new Set(Array.isArray(d.mugs) ? d.mugs : [0]);
+
+    const safeMugs = (Array.isArray(d.mugs) ? d.mugs : [0]).filter(i => i >= 0 && i < mugStyles.length);
+    ownedMugs = new Set(safeMugs);
     ownedMugs.add(0);
-    ownedPitchers = new Set(Array.isArray(d.pitchers) ? d.pitchers : [0]);
+
+    const safePitchers = (Array.isArray(d.pitchers) ? d.pitchers : [0]).filter(i => i >= 0 && i < pitcherStyles.length);
+    ownedPitchers = new Set(safePitchers);
     ownedPitchers.add(0);
+
     selectedMug = ownedMugs.has(d.mug) ? d.mug : 0;
     selectedPitcher = ownedPitchers.has(d.pitcher) ? d.pitcher : 0;
+
     const ci = coffeeTypes.findIndex(c => c.id === d.coffee);
     selectedCoffee = ci >= 0 ? ci : 0;
     seenHelp = !!d.seenHelp;
+    steamEnabled = d.steamEnabled !== false;
+
+    totalStars = Math.max(0, (d.totalStars | 0) || G.score);
+
+    const validIds = new Set(ACHIEVEMENTS.map(a => a.id));
+    unlockedAchievements = new Set(
+      (Array.isArray(d.achievements) ? d.achievements : []).filter(id => validIds.has(id))
+    );
+    checkAchievements(true);
   } catch(e){}
 }
 
@@ -1424,6 +2117,10 @@ const G = {
 let holding = false;
 let shopOpen = false;
 let helpOpen = false;
+let achOpen = false;
+let codeOpen = false;
+let mimiOpen = false;
+let mimiCamT = 0;
 
 /* =========================================================
    DOM
@@ -1432,6 +2129,7 @@ const scorePill  = document.getElementById('scorePill');
 const servedPill = document.getElementById('servedPill');
 const shopBtn    = document.getElementById('shopBtn');
 const helpBtn    = document.getElementById('helpBtn');
+const achBtn     = document.getElementById('achBtn');
 const hintEl     = document.getElementById('hint');
 const tapRing    = document.getElementById('tapRing');
 const toastEl    = document.getElementById('toast');
@@ -1448,15 +2146,49 @@ const helpTitle  = document.getElementById('helpTitle');
 const helpBody   = document.getElementById('helpBody');
 const helpOk     = document.getElementById('helpOk');
 
+const achEl      = document.getElementById('ach');
+const achClose   = document.getElementById('achClose');
+const achBody    = document.getElementById('achBody');
+const achSub     = document.getElementById('achSub');
+const achHeadIcon= document.getElementById('achHeadIcon');
+
+const achToast   = document.getElementById('achToast');
+const achToastIcon = document.getElementById('achToastIcon');
+const achToastName = document.getElementById('achToastName');
+
+const codeEl     = document.getElementById('code');
+const codeClose  = document.getElementById('codeClose');
+const codeInput  = document.getElementById('codeInput');
+const codeSubmit = document.getElementById('codeSubmit');
+const codeFeedback = document.getElementById('codeFeedback');
+const codeHeadIcon = document.getElementById('codeHeadIcon');
+
+const mimiEl     = document.getElementById('mimi');
+const mimiClose  = document.getElementById('mimiClose');
+const mimiMugGrid = document.getElementById('mimiMugGrid');
+const mimiPitcherGrid = document.getElementById('mimiPitcherGrid');
+const mimiContinue = document.getElementById('mimiContinue');
+const mimiSteamToggle = document.getElementById('mimiSteamToggle');
+const mimiHeadIcon = document.getElementById('mimiHeadIcon');
+const mimiSub = document.getElementById('mimiSub');
+
 const coffeePicker = document.getElementById('coffeePicker');
 
 scorePill.innerHTML  = starSVG(19) + '<span id="scoreNum">0</span>';
 servedPill.innerHTML = cupSVG(19) + '<span id="servedNum">0</span>';
 shopBtn.innerHTML    = bagSVG(19) + '<span>Shop</span>';
 helpBtn.innerHTML    = qSVG(19) + '<span>How to play</span>';
+achBtn.innerHTML     = trophySVG(20, '#ffd9a8');
 shopCoins.innerHTML  = starSVG(16) + '<span id="coinNum">0</span>';
 shopClose.innerHTML  = xSVG(17);
+achClose.innerHTML   = xSVG(16);
+codeClose.innerHTML  = xSVG(16);
+mimiClose.innerHTML  = xSVG(16, '#ffe4f4');
 tapRing.innerHTML    = tapSVG(25);
+achHeadIcon.innerHTML= trophySVG(18);
+achToastIcon.innerHTML = trophySVG(22);
+codeHeadIcon.innerHTML = keySVG(18);
+mimiHeadIcon.innerHTML = heartSVG(18, '#2a1535');
 
 helpTitle.innerHTML  = qSVG(22) + '<span>How to play</span>';
 
@@ -1479,6 +2211,35 @@ function showToast(html, cls){
   toastEl.className = 'show' + (cls ? ' ' + cls : '') + (html.indexOf('<svg') === 0 ? '' : ' txt');
 }
 
+/* ---------- Achievement toast ---------- */
+let achQueue = [];
+let achBusy = false;
+
+function showAchievementToast(a){
+  achQueue.push(a);
+  if (!achBusy) processAchQueue();
+}
+
+function processAchQueue(){
+  if (achQueue.length === 0){ achBusy = false; return; }
+  achBusy = true;
+  const a = achQueue.shift();
+  achToastName.textContent = `${a.name}  ·  +${a.stars} ★`;
+  achToast.classList.remove('show');
+  void achToast.offsetWidth;
+  achToast.classList.add('show');
+  if (navigator.vibrate) navigator.vibrate([18, 45, 18, 45, 26]);
+  for (let i = 0; i < 8; i++){
+    setTimeout(() => {
+      spawnSparkle(new THREE.Vector3(rand(-0.7, 0.7), rand(0.7, 1.2), rand(0.1, 0.6)), 0xffcf5a);
+    }, i * 55);
+  }
+  setTimeout(() => {
+    achToast.classList.remove('show');
+    setTimeout(processAchQueue, 380);
+  }, 2900);
+}
+
 function updateHUD(){
   scoreNum.textContent  = G.score;
   servedNum.textContent = G.served;
@@ -1494,6 +2255,7 @@ function renderPicker(){
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'coffeeBtn' + (i === selectedCoffee ? ' selected' : '');
+    b.setAttribute('aria-pressed', i === selectedCoffee ? 'true' : 'false');
     b.innerHTML = coffeeSVG(c.id, 26) + `<span>${c.short}</span>`;
     b.addEventListener('pointerdown', e => e.stopPropagation());
     b.addEventListener('click', e => { e.stopPropagation(); setCoffee(c.id); });
@@ -1513,8 +2275,6 @@ function setCoffee(id){
   applyCoffeeStyle();
   renderPicker();
   saveGame();
-
-  // friendly little puff of sparkles from the pitcher badge
   spawnSparkle(new THREE.Vector3(pitcher.position.x, pitcher.position.y + 0.55, pitcher.position.z), 0xffc070);
 }
 
@@ -1541,9 +2301,13 @@ function makeShopCard(kind, idx){
     + (selected ? ' selected' : '')
     + (!owned && G.score < s.price ? ' cant' : '');
 
-  const icon = kind === 'mug' ? mugIcon(s.color) : pitcherIcon(s.color);
+  const iconColor = kind === 'mug' ? (s.displayColor || s.color) : s.color;
+  const icon = kind === 'mug' ? mugIcon(iconColor) : pitcherIcon(iconColor);
+  const swatchStyle = (kind === 'mug' && s.glow)
+    ? `style="filter: drop-shadow(0 0 7px ${s.glow})"`
+    : '';
   btn.innerHTML = `
-    <div class="swatch">${icon}</div>
+    <div class="swatch" ${swatchStyle}>${icon}</div>
     <div class="itemName">${s.name}</div>
     ${owned
       ? `<div class="ownedTag">${selected ? 'Selected' : 'Owned'}</div>`
@@ -1564,6 +2328,7 @@ function makeShopCard(kind, idx){
       updateHUD();
       saveGame();
       renderShop();
+      if (navigator.vibrate) navigator.vibrate(12);
     } else {
       btn.classList.add('shake');
       setTimeout(() => btn.classList.remove('shake'), 380);
@@ -1623,6 +2388,8 @@ function buildHelp(){
       <div>Overfill and it spills — no stars! Serving the wrong brew doesn't please anyone either.</div></div>
     <div class="helpStep"><span class="helpNum">5</span>
       <div>Every pour is served automatically. Earn coins and spend them in the Shop on new mugs and pitchers.</div></div>
+    <div class="helpStep"><span class="helpNum">6</span>
+      <div>Pour 10 / 25 / 50 / 100 / 250 / 500 cups to unlock achievements and earn bonus stars. Tap the trophy to see your collection.</div></div>
   `;
 }
 
@@ -1644,11 +2411,322 @@ helpOk.addEventListener('click', e => { e.stopPropagation(); closeHelp(); });
 document.getElementById('helpBackdrop').addEventListener('click', closeHelp);
 
 /* =========================================================
+   ACHIEVEMENTS PANEL
+========================================================= */
+function renderAchievements(){
+  achBody.innerHTML = '';
+  let unlockedCount = 0;
+  ACHIEVEMENTS.forEach(a => {
+    const unlocked = unlockedAchievements.has(a.id);
+    if (unlocked) unlockedCount++;
+    const progress = Math.min(1, G.served / a.cups);
+    const pct = Math.round(progress * 100);
+    const cur = Math.min(G.served, a.cups);
+
+    const row = document.createElement('div');
+    row.className = 'achRow' + (unlocked ? ' unlocked' : '');
+    row.innerHTML = `
+      <div class="achRowIcon">${unlocked ? trophySVG(20, '#3a2208') : lockSVG(18, '#8a6a48')}</div>
+      <div class="achRowBody">
+        <div class="achRowName">${a.name}</div>
+        <div class="achRowDesc">${a.desc} · +${a.stars} stars</div>
+        <div class="achRowBar"><div class="achRowBarFill" style="width:${pct}%"></div></div>
+      </div>
+      <div class="achRowMeta">
+        ${unlocked ? 'Unlocked' : `${cur} / ${a.cups}`}
+        <div class="achRowCheck">${unlocked ? checkSVG(12, '#3a2208') : ''}</div>
+      </div>
+    `;
+    achBody.appendChild(row);
+  });
+  achSub.textContent = `${unlockedCount} / ${ACHIEVEMENTS.length} unlocked · ${G.served} cups poured`;
+}
+
+function openAch(){
+  if (G.phase !== 'ready'){
+    achBtn.classList.add('shake');
+    setTimeout(() => achBtn.classList.remove('shake'), 380);
+    return;
+  }
+  achOpen = true;
+  renderAchievements();
+  achEl.classList.add('open');
+}
+
+function closeAch(){
+  achOpen = false;
+  achEl.classList.remove('open');
+}
+
+achBtn.addEventListener('pointerdown', e => e.stopPropagation());
+achBtn.addEventListener('click', e => { e.stopPropagation(); openAch(); });
+achClose.addEventListener('pointerdown', e => e.stopPropagation());
+achClose.addEventListener('click', e => { e.stopPropagation(); closeAch(); });
+document.getElementById('achBackdrop').addEventListener('click', closeAch);
+
+/* =========================================================
+   SECRET CODE PANEL
+========================================================= */
+const SECRET_CODE = '6550';
+const SECRET_REWARD = 5000;
+const MIMI_CODE = 'mimi';
+
+let lastStarTap = 0;
+
+scorePill.addEventListener('pointerdown', e => {
+  e.stopPropagation();
+  const now = performance.now();
+  if (now - lastStarTap < 340){
+    lastStarTap = 0;
+    openCode();
+  } else {
+    lastStarTap = now;
+  }
+});
+
+function openCode(){
+  if (shopOpen || helpOpen || achOpen || mimiOpen) return;
+  if (G.phase === 'pouring') return;
+  codeOpen = true;
+  codeFeedback.textContent = '';
+  codeFeedback.className = '';
+  codeInput.value = '';
+  codeEl.classList.add('open');
+  setTimeout(() => { try { codeInput.focus(); } catch(e){} }, 120);
+}
+
+function closeCode(){
+  codeOpen = false;
+  codeEl.classList.remove('open');
+  try { codeInput.blur(); } catch(e){}
+}
+
+function submitCode(){
+  const v = codeInput.value.trim();
+  if (!v) return;
+
+  if (v === SECRET_CODE){
+    awardStars(SECRET_REWARD);
+    codeFeedback.textContent = `+${SECRET_REWARD.toLocaleString()} stars!`;
+    codeFeedback.className = 'success';
+    codeInput.value = '';
+    if (navigator.vibrate) navigator.vibrate([20, 40, 20, 40, 60]);
+    for (let i = 0; i < 16; i++){
+      setTimeout(() => {
+        spawnSparkle(
+          new THREE.Vector3(rand(-0.85, 0.85), rand(0.5, 1.4), rand(-0.2, 0.7)),
+          i % 3 === 0 ? 0xffe08a : 0xffcf5a
+        );
+      }, i * 40);
+    }
+    return;
+  }
+
+  if (v.toLowerCase() === MIMI_CODE){
+    if (G.phase !== 'ready'){
+      codeFeedback.textContent = 'Finish pouring first';
+      codeFeedback.className = 'error';
+      return;
+    }
+    codeFeedback.textContent = 'Mimi waves hello…';
+    codeFeedback.className = 'success';
+    if (navigator.vibrate) navigator.vibrate([15, 40, 15, 40, 30]);
+    setTimeout(() => {
+      closeCode();
+      openMimi();
+    }, 400);
+    return;
+  }
+
+  codeFeedback.textContent = 'Invalid code';
+  codeFeedback.className = 'error';
+  if (navigator.vibrate) navigator.vibrate(30);
+}
+
+codeClose.addEventListener('pointerdown', e => e.stopPropagation());
+codeClose.addEventListener('click', e => { e.stopPropagation(); closeCode(); });
+document.getElementById('codeBackdrop').addEventListener('click', closeCode);
+codeSubmit.addEventListener('pointerdown', e => e.stopPropagation());
+codeSubmit.addEventListener('click', e => { e.stopPropagation(); submitCode(); });
+codeInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter'){ e.preventDefault(); submitCode(); }
+});
+
+/* =========================================================
+   MIMI WARDROBE
+========================================================= */
+let mimiPreviewMug = 0;
+let mimiPreviewPitcher = 0;
+let mimiSelectedMugs = new Set();
+let mimiSelectedPitchers = new Set();
+
+function openMimi(){
+  if (shopOpen || helpOpen || achOpen || codeOpen) return;
+  if (G.phase !== 'ready') return;
+
+  mimiOpen = true;
+  mimiPreviewMug = selectedMug;
+  mimiPreviewPitcher = selectedPitcher;
+  mimiSelectedMugs.clear();
+  mimiSelectedPitchers.clear();
+
+  applyMugStyle(mimiPreviewMug);
+  applyPitcherStyle(mimiPreviewPitcher);
+
+  renderMimi();
+  mimiEl.classList.add('open');
+
+  for (let i = 0; i < 14; i++){
+    setTimeout(() => {
+      spawnSparkle(
+        new THREE.Vector3(rand(-0.6, 0.9), rand(0.4, 1.3), rand(-0.2, 0.6)),
+        i % 3 === 0 ? 0xff9ee0 : 0xc96bff
+      );
+    }, i * 55);
+  }
+}
+
+function closeMimi(){
+  mimiOpen = false;
+  mimiEl.classList.remove('open');
+  applyMugStyle(selectedMug);
+  applyPitcherStyle(selectedPitcher);
+}
+
+function mimiCardTap(kind, idx){
+  if (kind === 'mug'){
+    mimiPreviewMug = idx;
+    applyMugStyle(idx);
+    if (mimiSelectedMugs.has(idx)) mimiSelectedMugs.delete(idx);
+    else mimiSelectedMugs.add(idx);
+  } else {
+    mimiPreviewPitcher = idx;
+    applyPitcherStyle(idx);
+    if (mimiSelectedPitchers.has(idx)) mimiSelectedPitchers.delete(idx);
+    else mimiSelectedPitchers.add(idx);
+  }
+  renderMimi();
+  spawnSparkle(
+    new THREE.Vector3(
+      (kind === 'mug' ? 0.10 : 0.52) + rand(-0.10, 0.10),
+      0.45 + rand(0, 0.25),
+      0.06 + rand(-0.05, 0.05)
+    ),
+    0xffb8ec
+  );
+}
+
+function renderMimi(){
+  // Mugs
+  mimiMugGrid.innerHTML = '';
+  mugStyles.forEach((s, i) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'mimiCard';
+    if (mimiSelectedMugs.has(i)) card.classList.add('selected');
+    if (mimiPreviewMug === i) card.classList.add('previewing');
+
+    const iconColor = s.displayColor || s.color;
+    const icon = mugIcon(iconColor);
+    const glowStyle = s.glow ? `style="filter: drop-shadow(0 0 8px ${s.glow})"` : '';
+
+    card.innerHTML = `
+      <div class="mimiCardIcon" ${glowStyle}>${icon}</div>
+      <div class="mimiCardName">${s.name}</div>
+    `;
+    card.addEventListener('pointerdown', e => e.stopPropagation());
+    card.addEventListener('click', e => { e.stopPropagation(); mimiCardTap('mug', i); });
+    mimiMugGrid.appendChild(card);
+  });
+
+  // Pitchers
+  mimiPitcherGrid.innerHTML = '';
+  pitcherStyles.forEach((s, i) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'mimiCard';
+    if (mimiSelectedPitchers.has(i)) card.classList.add('selected');
+    if (mimiPreviewPitcher === i) card.classList.add('previewing');
+
+    const icon = pitcherIcon(s.color);
+
+    card.innerHTML = `
+      <div class="mimiCardIcon">${icon}</div>
+      <div class="mimiCardName">${s.name}</div>
+    `;
+    card.addEventListener('pointerdown', e => e.stopPropagation());
+    card.addEventListener('click', e => { e.stopPropagation(); mimiCardTap('pitcher', i); });
+    mimiPitcherGrid.appendChild(card);
+  });
+
+  // Steam toggle
+  mimiSteamToggle.classList.toggle('on', steamEnabled);
+
+  // Continue button text
+  const totalSel = mimiSelectedMugs.size + mimiSelectedPitchers.size;
+  mimiContinue.textContent = totalSel === 0
+    ? 'Continue with current'
+    : `Continue with ${totalSel} selected`;
+
+  // Subtitle
+  mimiSub.textContent = totalSel === 0
+    ? 'Tap any card to preview & select — the scene above updates live'
+    : `${mimiSelectedMugs.size} mug${mimiSelectedMugs.size === 1 ? '' : 's'} · ${mimiSelectedPitchers.size} pitcher${mimiSelectedPitchers.size === 1 ? '' : 's'} selected`;
+}
+
+function mimiContinueClick(){
+  mimiSelectedMugs.forEach(i => ownedMugs.add(i));
+  mimiSelectedPitchers.forEach(i => ownedPitchers.add(i));
+
+  if (mimiSelectedMugs.size > 0){
+    if (mimiSelectedMugs.has(mimiPreviewMug)) selectedMug = mimiPreviewMug;
+    else selectedMug = mimiSelectedMugs.values().next().value;
+  }
+  if (mimiSelectedPitchers.size > 0){
+    if (mimiSelectedPitchers.has(mimiPreviewPitcher)) selectedPitcher = mimiPreviewPitcher;
+    else selectedPitcher = mimiSelectedPitchers.values().next().value;
+  }
+
+  applyMugStyle(selectedMug);
+  applyPitcherStyle(selectedPitcher);
+  saveGame();
+  if (navigator.vibrate) navigator.vibrate([15, 30, 15, 30, 40]);
+
+  for (let i = 0; i < 12; i++){
+    setTimeout(() => {
+      spawnSparkle(
+        new THREE.Vector3(rand(-0.6, 0.9), rand(0.5, 1.3), rand(-0.2, 0.6)),
+        0xffd0f0
+      );
+    }, i * 40);
+  }
+
+  closeMimi();
+}
+
+function mimiSteamToggleClick(){
+  steamEnabled = !steamEnabled;
+  mimiSteamToggle.classList.toggle('on', steamEnabled);
+  saveGame();
+  if (navigator.vibrate) navigator.vibrate(10);
+}
+
+mimiClose.addEventListener('pointerdown', e => e.stopPropagation());
+mimiClose.addEventListener('click', e => { e.stopPropagation(); closeMimi(); });
+document.getElementById('mimiBackdrop').addEventListener('click', closeMimi);
+mimiContinue.addEventListener('pointerdown', e => e.stopPropagation());
+mimiContinue.addEventListener('click', e => { e.stopPropagation(); mimiContinueClick(); });
+mimiSteamToggle.addEventListener('pointerdown', e => e.stopPropagation());
+mimiSteamToggle.addEventListener('click', e => { e.stopPropagation(); mimiSteamToggleClick(); });
+
+/* =========================================================
    INPUT
 ========================================================= */
 function onDown(e){
-  if (shopOpen || helpOpen) return;
-  if (e && e.target && e.target.closest && e.target.closest('#shopBtn, #shop, #helpBtn, #help, #coffeePicker')) return;
+  if (shopOpen || helpOpen || achOpen || codeOpen || mimiOpen) return;
+  if (e && e.target && e.target.closest && e.target.closest(
+    '#shopBtn, #shop, #helpBtn, #help, #achBtn, #ach, #codeBtn, #code, #mimi, #coffeePicker, #scorePill'
+  )) return;
   if (G.phase !== 'ready') return;
 
   holding = true;
@@ -1673,11 +2751,23 @@ function onUp(){
 window.addEventListener('pointerdown', onDown, { passive: true });
 window.addEventListener('pointerup', onUp, { passive: true });
 window.addEventListener('pointercancel', onUp, { passive: true });
+window.addEventListener('blur', onUp);
+window.addEventListener('pointerleave', onUp);
+document.addEventListener('visibilitychange', () => { if (document.hidden){ onUp(); saveGame(); } });
 window.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('gesturestart', e => e.preventDefault());
 
-// quick-swap with number keys on desktop
 window.addEventListener('keydown', e => {
+  if (shopOpen || helpOpen || achOpen || codeOpen || mimiOpen){
+    if (e.key === 'Escape'){
+      if (shopOpen) closeShop();
+      else if (helpOpen) closeHelp();
+      else if (achOpen) closeAch();
+      else if (codeOpen) closeCode();
+      else if (mimiOpen) closeMimi();
+    }
+    return;
+  }
   const n = parseInt(e.key, 10);
   if (n >= 1 && n <= coffeeTypes.length) setCoffee(coffeeTypes[n-1].id);
 });
@@ -1685,6 +2775,8 @@ window.addEventListener('keydown', e => {
 /* =========================================================
    POUR RESULT
 ========================================================= */
+const MIN_FILL = 0.18;
+
 function finishPour(){
   const f = G.fill;
   const want = customer ? customer.userData.want : coffeeTypes[selectedCoffee].id;
@@ -1692,7 +2784,11 @@ function finishPour(){
 
   let stars, html, cls;
 
-  if (f > 1.0){
+  if (f < MIN_FILL){
+    stars = 0;
+    html = 'Too little!';
+    cls = 'spill';
+  } else if (f > 1.0){
     stars = 0;
     html = 'Spilled!';
     cls = 'spill';
@@ -1714,10 +2810,14 @@ function finishPour(){
     cls = '';
   }
 
+  // Add pour stars
   G.score += stars;
+  totalStars += stars;
   G.served += 1;
   updateHUD();
-  saveGame();
+
+  // Check achievement progress (cups-based)
+  checkAchievements(false);
 
   G.phase = 'servePrompt';
   G.promptT = 0;
@@ -1739,6 +2839,18 @@ const _b = new THREE.Vector3();
 
 function update(dt){
   G.time += dt;
+
+  /* ---------- camera (mimi preview) ---------- */
+  const camTarget = mimiOpen ? 1 : 0;
+  mimiCamT += (camTarget - mimiCamT) * Math.min(1, dt * 6);
+  if (mimiCamT < 0.001 && !mimiOpen){
+    camera.position.copy(NORMAL_CAM_POS);
+    camera.lookAt(CAM_TARGET);
+  } else {
+    camera.position.lerpVectors(NORMAL_CAM_POS, MIMI_CAM_POS, mimiCamT);
+    const look = CAM_TARGET.clone().lerp(MIMI_CAM_TARGET, mimiCamT);
+    camera.lookAt(look);
+  }
 
   /* ---------- pitcher pose ---------- */
   const isPouring = (G.phase === 'pouring');
@@ -1767,12 +2879,11 @@ function update(dt){
     pitcher.position.z
   );
 
-  /* ---------- fill (can overflow!) ---------- */
+  /* ---------- fill ---------- */
   if (G.phase === 'pouring' && pitcher.rotation.z > 0.58){
     G.fill = Math.min(OVERFILL_CAP, G.fill + POUR_RATE * dt);
   }
 
-  /* ---------- coffee body (visual caps at full) ---------- */
   const visualFill = Math.min(1.0, G.fill);
   const h = Math.max(0.0006, visualFill * FILL_MAX_H);
   coffee.scale.y = h;
@@ -1818,7 +2929,7 @@ function update(dt){
   ringMat.emissiveIntensity = G.inZone ? 3.0 + pulse * 2.0 : 1.3;
   coffeeMat.emissiveIntensity = G.inZone ? 1.2 + pulse * 0.55 : 0.6;
 
-  /* ---------- curved coffee stream ---------- */
+  /* ---------- stream ---------- */
   const shouldPour = (G.phase === 'pouring') && pitcher.rotation.z > 0.58 && G.fill < 1.0;
 
   if (shouldPour){
@@ -1842,8 +2953,8 @@ function update(dt){
 
   updateRipples(dt);
 
-  /* ---------- steam ---------- */
-  if (G.fill > 0.05 && Math.random() < dt * (shouldPour ? 16 : 8)){
+  /* ---------- steam (respects toggle) ---------- */
+  if (steamEnabled && G.fill > 0.05 && Math.random() < dt * (shouldPour ? 16 : 8)){
     const wp = new THREE.Vector3();
     crema.getWorldPosition(wp);
     wp.y += 0.025;
@@ -2019,7 +3130,7 @@ function onResize(){
   const aspect = w / h;
   camera.aspect = aspect;
 
-  const dist = camera.position.distanceTo(CAM_TARGET);
+  const dist = NORMAL_CAM_POS.distanceTo(CAM_TARGET);
   const targetWidth = 1.62;
   const hHalf = Math.atan((targetWidth / 2) / dist);
   const vHalf = Math.atan(Math.tan(hHalf) / aspect);
@@ -2030,6 +3141,7 @@ function onResize(){
 
 window.addEventListener('resize', onResize);
 window.addEventListener('orientationchange', () => setTimeout(onResize, 130));
+window.addEventListener('pagehide', saveGame);
 
 /* =========================================================
    BOOT
